@@ -16,11 +16,11 @@
     Import-Module .\ADSecurityAudit.psm1
     Start-ADSecurityAudit -Verbose -ExportPath "C:\Reports"
 #>
-
 #Requires -Modules ActiveDirectory
 #Requires -RunAsAdministrator
 
 # Module-level variables
+
 $Script:SeverityLevels = @{
     Critical = 4
     High = 3
@@ -28,6 +28,11 @@ $Script:SeverityLevels = @{
     Low = 1
     Info = 0
 }
+
+$Script:ThresholdCriticalGroupSize = 5
+$Script:ThresholdStandardGroupSize = 10
+$Script:ThresholdInactiveDays = 90
+$Script:ThresholdPasswordAgeDays = 180
 
 $Script:ProtectedGroups = @(
     'Domain Admins'
@@ -45,16 +50,13 @@ $Script:ProtectedGroups = @(
     'Distributed COM Users'
 )
 
-# Known dangerous rights GUIDs
 $Script:DangerousRights = @{
     'GenericAll' = '00000000-0000-0000-0000-000000000000'
-    'WriteDacl' = '1131f6ad-9c07-11d1-f79f-00c04fc2dcd2'
     'WriteOwner' = '1131f6ae-9c07-11d1-f79f-00c04fc2dcd2'
     'DS-Replication-Get-Changes' = '1131f6aa-9c07-11d1-f79f-00c04fc2dcd2'
     'DS-Replication-Get-Changes-All' = '1131f6ad-9c07-11d1-f79f-00c04fc2dcd2'
     'DS-Replication-Get-Changes-In-Filtered-Set' = '89e95b76-444d-4c62-991a-0facbeda640c'
     'User-Force-Change-Password' = '00299570-246d-11d0-a768-00aa006e0529'
-    'AllExtendedRights' = '00000000-0000-0000-0000-000000000000'
 }
 
 class ADSecurityFinding {
@@ -77,10 +79,6 @@ class ADSecurityFinding {
 
 #region User Account Audits
 
-<#
-.SYNOPSIS
-    Audits user accounts for security misconfigurations
-#>
 function Test-ADUserSecurity {
     [CmdletBinding()]
     param(
@@ -98,12 +96,38 @@ function Test-ADUserSecurity {
     $findings = @()
     
     try {
-        # Get all user accounts
-        $users = Get-ADUser -Filter * -Properties * -SearchBase $SearchBase -ErrorAction Stop
+        $getUserParams = @{
+            Filter = '*'
+            ErrorAction = 'Stop'
+            Properties = @(
+                'DoesNotRequirePreAuth', 'UseDESKeyOnly', 'AllowReversiblePasswordEncryption',
+                'PasswordNeverExpires', 'TrustedForDelegation', 'LastLogonDate', 'PasswordLastSet',
+                'ServicePrincipalNames', 'MemberOf', 'Enabled', 'DistinguishedName', 
+                'UserPrincipalName', 'adminCount', 'SamAccountName', 'SID'
+            )
+        }
+        
+        if ($SearchBase) {
+            $getUserParams['SearchBase'] = $SearchBase
+        }
+        
+        $users = Get-ADUser @getUserParams
         
         Write-Verbose "Analyzing $($users.Count) user accounts..."
         
+        $protectedUsersGroup = Get-ADGroup -Filter "Name -eq 'Protected Users'" -ErrorAction SilentlyContinue
+        
+        $userCount = $users.Count
+        $currentUser = 0
+        
         foreach ($user in $users) {
+            $currentUser++
+            
+            if ($currentUser % 100 -eq 0 -or $currentUser -eq $userCount) {
+                Write-Progress -Activity "Scanning User Accounts" -Status "Processing $($user.SamAccountName)" `
+                    -PercentComplete (($currentUser / $userCount) * 100)
+            }
+            
             # Check for disabled Kerberos pre-authentication (AS-REP Roasting vulnerability)
             if ($user.DoesNotRequirePreAuth -eq $true) {
                 $finding = [ADSecurityFinding]::new()
@@ -259,29 +283,31 @@ function Test-ADUserSecurity {
                 $findings += $finding
             }
             
-            # Check for accounts not in Protected Users group
-            $isHighlyPrivileged = $Script:ProtectedGroups | Where-Object {
-                $user.MemberOf -match "CN=$_,"
-            } | Where-Object { $_ -in @('Domain Admins', 'Enterprise Admins', 'Schema Admins') }
-            
-            if ($isHighlyPrivileged -and $user.MemberOf -notmatch 'CN=Protected Users,') {
-                $finding = [ADSecurityFinding]::new()
-                $finding.Category = 'User Account'
-                $finding.Issue = 'Privileged Account Not in Protected Users Group'
-                $finding.Severity = 'High'
-                $finding.SeverityLevel = 3
-                $finding.AffectedObject = $user.SamAccountName
-                $finding.Description = "Highly privileged account is not a member of the Protected Users security group."
-                $finding.Impact = "Account lacks additional protections against credential theft attacks like pass-the-hash."
-                $finding.Remediation = "Add to Protected Users group: Add-ADGroupMember -Identity 'Protected Users' -Members '$($user.SamAccountName)'"
-                $finding.Details = @{
-                    DistinguishedName = $user.DistinguishedName
-                    PrivilegedGroups = $isHighlyPrivileged -join '; '
+            if ($protectedUsersGroup) {
+                $isHighlyPrivileged = $Script:ProtectedGroups | Where-Object {
+                    $user.MemberOf -match "CN=$_,"
+                } | Where-Object { $_ -in @('Domain Admins', 'Enterprise Admins', 'Schema Admins') }
+                
+                if ($isHighlyPrivileged -and $user.MemberOf -notmatch 'CN=Protected Users,') {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'User Account'
+                    $finding.Issue = 'Privileged Account Not in Protected Users Group'
+                    $finding.Severity = 'High'
+                    $finding.SeverityLevel = 3
+                    $finding.AffectedObject = $user.SamAccountName
+                    $finding.Description = "Highly privileged account is not a member of the Protected Users security group."
+                    $finding.Impact = "Account lacks additional protections against credential theft attacks like pass-the-hash."
+                    $finding.Remediation = "Add to Protected Users group: Add-ADGroupMember -Identity 'Protected Users' -Members '$($user.SamAccountName)'"
+                    $finding.Details = @{
+                        DistinguishedName = $user.DistinguishedName
+                        PrivilegedGroups = $isHighlyPrivileged -join '; '
+                    }
+                    $findings += $finding
                 }
-                $findings += $finding
             }
         }
         
+        Write-Progress -Activity "Scanning User Accounts" -Completed
         Write-Verbose "User account audit complete. Found $($findings.Count) issues."
         return $findings
     }
@@ -291,10 +317,6 @@ function Test-ADUserSecurity {
     }
 }
 
-<#
-.SYNOPSIS
-    Tests if a user is a member of privileged groups
-#>
 function Test-PrivilegedUser {
     [CmdletBinding()]
     param(
@@ -314,10 +336,6 @@ function Test-PrivilegedUser {
 
 #region Group and Privilege Audits
 
-<#
-.SYNOPSIS
-    Audits privileged groups for overly permissive membership
-#>
 function Test-ADPrivilegedGroups {
     [CmdletBinding()]
     param(
@@ -331,21 +349,32 @@ function Test-ADPrivilegedGroups {
     $groupsToCheck = $Script:ProtectedGroups + $AdditionalGroups
     
     try {
+        $groupCount = $groupsToCheck.Count
+        $currentGroup = 0
+        
         foreach ($groupName in $groupsToCheck) {
+            $currentGroup++
+            Write-Progress -Activity "Scanning Privileged Groups" -Status "Processing $groupName" `
+                -PercentComplete (($currentGroup / $groupCount) * 100)
+            
             try {
-                $group = Get-ADGroup -Filter "Name -eq '$groupName'" -Properties Members, MemberOf -ErrorAction Stop
+                $group = Get-ADGroup -Filter "Name -eq '$groupName'" -Properties Members, MemberOf -ErrorAction SilentlyContinue
                 
                 if (-not $group) {
                     continue
                 }
                 
-                $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction Stop
+                $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction SilentlyContinue
+                
+                if (-not $members) {
+                    continue
+                }
                 
                 # Check for excessive membership
                 $memberCount = ($members | Measure-Object).Count
                 
                 $criticalGroups = @('Domain Admins', 'Enterprise Admins', 'Schema Admins')
-                $threshold = if ($groupName -in $criticalGroups) { 5 } else { 10 }
+                $threshold = if ($groupName -in $criticalGroups) { $Script:ThresholdCriticalGroupSize } else { $Script:ThresholdStandardGroupSize }
                 
                 if ($memberCount -gt $threshold) {
                     $finding = [ADSecurityFinding]::new()
@@ -389,6 +418,10 @@ function Test-ADPrivilegedGroups {
                 foreach ($member in $userMembers) {
                     $userDetails = Get-ADUser -Identity $member -Properties Enabled, LastLogonDate -ErrorAction SilentlyContinue
                     
+                    if (-not $userDetails) {
+                        continue
+                    }
+                    
                     if ($userDetails.Enabled -eq $false) {
                         $finding = [ADSecurityFinding]::new()
                         $finding.Category = 'Privileged Groups'
@@ -413,6 +446,7 @@ function Test-ADPrivilegedGroups {
             }
         }
         
+        Write-Progress -Activity "Scanning Privileged Groups" -Completed
         Write-Verbose "Privileged group audit complete. Found $($findings.Count) issues."
         return $findings
     }
@@ -426,10 +460,6 @@ function Test-ADPrivilegedGroups {
 
 #region AdminSDHolder Audit
 
-<#
-.SYNOPSIS
-    Audits the AdminSDHolder object for risky permissions
-#>
 function Test-AdminSDHolder {
     [CmdletBinding()]
     param()
@@ -448,11 +478,9 @@ function Test-AdminSDHolder {
         $adminSDHolder = Get-ADObject -Identity $adminSDHolderDN -Properties nTSecurityDescriptor
         $acl = $adminSDHolder.nTSecurityDescriptor
         
-        # Define acceptable trustees (these should be the only ones with significant rights)
         $acceptableTrustees = @(
             'NT AUTHORITY\SYSTEM'
             'BUILTIN\Administrators'
-            'BUILTIN\Account Operators'
             "$($domain.NetBIOSName)\Domain Admins"
             "$($domain.NetBIOSName)\Enterprise Admins"
             'NT AUTHORITY\SELF'
@@ -577,10 +605,6 @@ function Test-AdminSDHolder {
 
 #region GPO Audit
 
-<#
-.SYNOPSIS
-    Audits Group Policy Objects for security misconfigurations
-#>
 function Test-ADGroupPolicies {
     [CmdletBinding()]
     param()
@@ -596,7 +620,14 @@ function Test-ADGroupPolicies {
         
         Write-Verbose "Analyzing $($allGPOs.Count) GPOs..."
         
+        $gpoCount = $allGPOs.Count
+        $currentGpo = 0
+        
         foreach ($gpo in $allGPOs) {
+            $currentGpo++
+            Write-Progress -Activity "Scanning Group Policies" -Status "Processing $($gpo.DisplayName)" `
+                -PercentComplete (($currentGpo / $gpoCount) * 100)
+            
             # Get GPO permissions
             $gpoPermissions = Get-GPPermission -Guid $gpo.Id -All
             
@@ -698,41 +729,51 @@ function Test-ADGroupPolicies {
             }
         }
         
+        Write-Progress -Activity "Scanning Group Policies" -Completed
+        
         # Check SYSVOL permissions
         Write-Verbose "Checking SYSVOL permissions..."
         $sysvolPath = "\\$($domain.DNSRoot)\SYSVOL\$($domain.DNSRoot)"
         
         if (Test-Path $sysvolPath) {
-            $sysvolAcl = Get-Acl $sysvolPath
-            
-            foreach ($ace in $sysvolAcl.Access) {
-                # Check for write/modify rights granted to non-admin groups
-                if ($ace.FileSystemRights -match 'Write|Modify|FullControl' -and
-                    $ace.AccessControlType -eq 'Allow' -and
-                    $ace.IdentityReference -notmatch 'SYSTEM' -and
-                    $ace.IdentityReference -notmatch 'Administrators' -and
-                    $ace.IdentityReference -notmatch 'Domain Admins' -and
-                    $ace.IdentityReference -notmatch 'Enterprise Admins' -and
-                    $ace.IdentityReference -notmatch 'CREATOR OWNER') {
-                    
-                    $finding = [ADSecurityFinding]::new()
-                    $finding.Category = 'Group Policy'
-                    $finding.Issue = 'Insecure SYSVOL Permissions'
-                    $finding.Severity = 'Critical'
-                    $finding.SeverityLevel = 4
-                    $finding.AffectedObject = "SYSVOL - $($ace.IdentityReference)"
-                    $finding.Description = "SYSVOL has write permissions granted to '$($ace.IdentityReference)'."
-                    $finding.Impact = "Attackers can tamper with GPO files, scripts, and policies that apply to all domain members, leading to widespread compromise."
-                    $finding.Remediation = "Restrict SYSVOL permissions. Remove write access for non-admin principals. Only Domain Admins and SYSTEM should have write access."
-                    $finding.Details = @{
-                        Path = $sysvolPath
-                        Identity = $ace.IdentityReference
-                        FileSystemRights = $ace.FileSystemRights
-                        AccessControlType = $ace.AccessControlType
+            try {
+                $sysvolAcl = Get-Acl $sysvolPath -ErrorAction Stop
+                
+                foreach ($ace in $sysvolAcl.Access) {
+                    # Check for write/modify rights granted to non-admin groups
+                    if ($ace.FileSystemRights -match 'Write|Modify|FullControl' -and
+                        $ace.AccessControlType -eq 'Allow' -and
+                        $ace.IdentityReference -notmatch 'SYSTEM' -and
+                        $ace.IdentityReference -notmatch 'Administrators' -and
+                        $ace.IdentityReference -notmatch 'Domain Admins' -and
+                        $ace.IdentityReference -notmatch 'Enterprise Admins' -and
+                        $ace.IdentityReference -notmatch 'CREATOR OWNER') {
+                        
+                        $finding = [ADSecurityFinding]::new()
+                        $finding.Category = 'Group Policy'
+                        $finding.Issue = 'Insecure SYSVOL Permissions'
+                        $finding.Severity = 'Critical'
+                        $finding.SeverityLevel = 4
+                        $finding.AffectedObject = "SYSVOL - $($ace.IdentityReference)"
+                        $finding.Description = "SYSVOL has write permissions granted to '$($ace.IdentityReference)'."
+                        $finding.Impact = "Attackers can tamper with GPO files, scripts, and policies that apply to all domain members, leading to widespread compromise."
+                        $finding.Remediation = "Restrict SYSVOL permissions. Remove write access for non-admin principals. Only Domain Admins and SYSTEM should have write access."
+                        $finding.Details = @{
+                            Path = $sysvolPath
+                            Identity = $ace.IdentityReference
+                            FileSystemRights = $ace.FileSystemRights
+                            AccessControlType = $ace.AccessControlType
+                        }
+                        $findings += $finding
                     }
-                    $findings += $finding
                 }
             }
+            catch {
+                Write-Warning "Could not access SYSVOL ACL: $_"
+            }
+        }
+        else {
+            Write-Warning "SYSVOL path not accessible at expected location: $sysvolPath"
         }
         
         Write-Verbose "Group Policy audit complete. Found $($findings.Count) issues."
@@ -748,10 +789,6 @@ function Test-ADGroupPolicies {
 
 #region Replication and DCSync Audit
 
-<#
-.SYNOPSIS
-    Audits AD replication permissions for DCSync attack vectors
-#>
 function Test-ADReplicationSecurity {
     [CmdletBinding()]
     param()
@@ -778,7 +815,6 @@ function Test-ADReplicationSecurity {
             "$($domain.NetBIOSName)\Read-only Domain Controllers"
         )
         
-        # DCSync requires specific extended rights
         $dcsyncRights = @{
             'DS-Replication-Get-Changes' = '1131f6aa-9c07-11d1-f79f-00c04fc2dcd2'
             'DS-Replication-Get-Changes-All' = '1131f6ad-9c07-11d1-f79f-00c04fc2dcd2'
@@ -890,10 +926,6 @@ function Test-ADReplicationSecurity {
 
 #region Domain Security Settings
 
-<#
-.SYNOPSIS
-    Audits domain-wide security settings and configurations
-#>
 function Test-ADDomainSecurity {
     [CmdletBinding()]
     param()
@@ -1003,10 +1035,21 @@ function Test-ADDomainSecurity {
         Write-Verbose "Checking for legacy operating systems..."
         $computers = Get-ADComputer -Filter * -Properties OperatingSystem, OperatingSystemVersion, LastLogonDate
         
-        $legacyOS = @('Windows XP', 'Windows Vista', 'Windows 7', 'Windows 8', 'Windows Server 2003', 'Windows Server 2008', 'Windows Server 2012')
+        $legacyOS = @(
+            'Windows XP', 'Windows Vista', 'Windows 7', 'Windows 8', 'Windows 8.1',
+            'Windows Server 2003', 'Windows Server 2008', 'Windows Server 2012', 'Windows Server 2012 R2'
+        )
+        
         $legacyComputers = $computers | Where-Object {
             $os = $_.OperatingSystem
-            $legacyOS | Where-Object { $os -match $_ }
+            if ($os) {
+                foreach ($legacyPattern in $legacyOS) {
+                    if ($os -match [regex]::Escape($legacyPattern)) {
+                        return $true
+                    }
+                }
+            }
+            return $false
         }
         
         if ($legacyComputers) {
@@ -1021,7 +1064,7 @@ function Test-ADDomainSecurity {
             $finding.Remediation = "Upgrade or isolate legacy systems. Remove computer accounts for decommissioned systems."
             $finding.Details = @{
                 Count = $legacyComputers.Count
-                Computers = ($legacyComputers | Select-Object Name, OperatingSystem, LastLogonDate | Format-Table | Out-String)
+                Computers = ($legacyComputers | Select-Object Name, OperatingSystem, LastLogonDate -First 50)
             }
             $findings += $finding
         }
@@ -1039,10 +1082,6 @@ function Test-ADDomainSecurity {
 
 #region Dangerous Permissions Audit
 
-<#
-.SYNOPSIS
-    Audits for dangerous permissions on critical AD objects
-#>
 function Test-ADDangerousPermissions {
     [CmdletBinding()]
     param()
@@ -1210,22 +1249,6 @@ Remove the over-privileged ACE and grant only the required permissions:
 
 #region Privileged Users Enumeration
 
-<#
-.SYNOPSIS
-    Enumerates all users in privileged roles across the domain
-    
-.DESCRIPTION
-    Returns a comprehensive list of all users who are members of privileged groups,
-    including nested group memberships. This provides visibility into who has
-    elevated access in the environment.
-    
-.OUTPUTS
-    Returns an array of custom objects containing user details and their privileged group memberships
-    
-.EXAMPLE
-    $privilegedUsers = Get-ADPrivilegedUsers
-    $privilegedUsers | Export-Csv -Path "C:\Reports\PrivilegedUsers.csv" -NoTypeInformation
-#>
 function Get-ADPrivilegedUsers {
     [CmdletBinding()]
     param()
@@ -1234,10 +1257,17 @@ function Get-ADPrivilegedUsers {
     
     try {
         $domain = Get-ADDomain
-        $privilegedUsersList = @()
+        $privilegedUsersList = [System.Collections.ArrayList]::new()
         $processedUsers = @{}
         
+        $groupCount = $Script:ProtectedGroups.Count
+        $currentGroup = 0
+        
         foreach ($groupName in $Script:ProtectedGroups) {
+            $currentGroup++
+            Write-Progress -Activity "Enumerating Privileged Users" -Status "Processing group: $groupName" `
+                -PercentComplete (($currentGroup / $groupCount) * 100)
+            
             try {
                 $group = Get-ADGroup -Filter "Name -eq '$groupName'" -Properties Members, Description -ErrorAction SilentlyContinue
                 
@@ -1250,6 +1280,10 @@ function Get-ADPrivilegedUsers {
                 
                 # Get all members recursively
                 $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction SilentlyContinue
+                
+                if (-not $members) {
+                    continue
+                }
                 
                 # Filter to only user objects
                 $userMembers = $members | Where-Object { $_.objectClass -eq 'user' }
@@ -1264,10 +1298,9 @@ function Get-ADPrivilegedUsers {
                     
                     $userSID = $user.SID.Value
                     
-                    # Check if we've already processed this user
                     if (-not $processedUsers.ContainsKey($userSID)) {
                         # First time seeing this user, create new entry
-                        $privilegedUsersList += [PSCustomObject]@{
+                        $userObj = [PSCustomObject]@{
                             SamAccountName = $user.SamAccountName
                             DisplayName = $user.DisplayName
                             UserPrincipalName = $user.UserPrincipalName
@@ -1278,7 +1311,7 @@ function Get-ADPrivilegedUsers {
                             LastLogonDate = $user.LastLogonDate
                             WhenCreated = $user.WhenCreated
                             AdminCount = $user.adminCount
-                            PrivilegedGroups = @($groupName)
+                            PrivilegedGroups = [System.Collections.ArrayList]@($groupName)
                             PrivilegedGroupsString = $groupName
                             Title = $user.Title
                             Department = $user.Department
@@ -1290,12 +1323,13 @@ function Get-ADPrivilegedUsers {
                             SID = $userSID
                         }
                         
-                        $processedUsers[$userSID] = $privilegedUsersList.Count - 1
+                        $index = $privilegedUsersList.Add($userObj)
+                        $processedUsers[$userSID] = $index
                     }
                     else {
                         # We've seen this user before, add this group to their list
                         $index = $processedUsers[$userSID]
-                        $privilegedUsersList[$index].PrivilegedGroups += $groupName
+                        [void]$privilegedUsersList[$index].PrivilegedGroups.Add($groupName)
                         $privilegedUsersList[$index].PrivilegedGroupsString = $privilegedUsersList[$index].PrivilegedGroups -join '; '
                     }
                 }
@@ -1305,6 +1339,7 @@ function Get-ADPrivilegedUsers {
             }
         }
         
+        Write-Progress -Activity "Enumerating Privileged Users" -Completed
         Write-Verbose "Found $($privilegedUsersList.Count) unique privileged users across $($Script:ProtectedGroups.Count) protected groups"
         
         return $privilegedUsersList | Sort-Object SamAccountName
@@ -1319,41 +1354,6 @@ function Get-ADPrivilegedUsers {
 
 #region Main Audit Function
 
-<#
-.SYNOPSIS
-    Runs comprehensive Active Directory security audit
-    
-.DESCRIPTION
-    Executes all security checks and generates a detailed report with findings,
-    severity ratings, and remediation recommendations.
-    
-.PARAMETER ExportPath
-    Path to export the audit report
-    
-.PARAMETER IncludeTests
-    Specific tests to run. If not specified, runs all tests.
-    
-.PARAMETER ExcludeTests
-    Tests to exclude from the audit
-    
-.PARAMETER IncludePrivilegedUsersReport
-    Generates a separate report listing all users in privileged roles
-    
-.PARAMETER InactiveDaysThreshold
-    Number of days to consider an account inactive (default: 90)
-    
-.PARAMETER PasswordAgeThreshold
-    Number of days to consider a password old (default: 180)
-    
-.EXAMPLE
-    Start-ADSecurityAudit -Verbose -ExportPath "C:\Reports"
-    
-.EXAMPLE
-    Start-ADSecurityAudit -IncludeTests UserAccounts, AdminSDHolder -ExportPath "C:\Reports"
-
-.EXAMPLE
-    Start-ADSecurityAudit -IncludePrivilegedUsersReport -ExportPath "C:\Reports"
-#>
 function Start-ADSecurityAudit {
     [CmdletBinding()]
     param(
@@ -1378,151 +1378,183 @@ function Start-ADSecurityAudit {
         [int]$PasswordAgeThreshold = 180
     )
     
-    $startTime = Get-Date
-    Write-Host "`n==================================================" -ForegroundColor Cyan
-    Write-Host "Active Directory Security Assessment" -ForegroundColor Cyan
-    Write-Host "==================================================" -ForegroundColor Cyan
-    Write-Host "Start Time: $startTime`n" -ForegroundColor Gray
-    
-    # Verify AD module is available
-    if (-not (Get-Module -ListAvailable -Name ActiveDirectory)) {
-        Write-Error "Active Directory PowerShell module is not installed. Please install RSAT tools."
+    if (-not (Test-Path $ExportPath)) {
+        Write-Error "Export path does not exist: $ExportPath"
         return
     }
     
-    Import-Module ActiveDirectory -ErrorAction Stop
-    
-    # Get domain info
-    $domain = Get-ADDomain
-    Write-Host "Domain: $($domain.DNSRoot)" -ForegroundColor Green
-    Write-Host "Domain DN: $($domain.DistinguishedName)`n" -ForegroundColor Green
-    
-    # Define all tests
-    $allTests = @{
-        'UserAccounts' = { Test-ADUserSecurity -InactiveDaysThreshold $InactiveDaysThreshold -PasswordAgeThreshold $PasswordAgeThreshold }
-        'PrivilegedGroups' = { Test-ADPrivilegedGroups }
-        'AdminSDHolder' = { Test-AdminSDHolder }
-        'GroupPolicies' = { Test-ADGroupPolicies }
-        'ReplicationSecurity' = { Test-ADReplicationSecurity }
-        'DomainSecurity' = { Test-ADDomainSecurity }
-        'DangerousPermissions' = { Test-ADDangerousPermissions }
+    $testFile = Join-Path $ExportPath "test_write_$(Get-Random).tmp"
+    try {
+        [System.IO.File]::WriteAllText($testFile, "test")
+        Remove-Item $testFile -Force
+    }
+    catch {
+        Write-Error "Export path is not writable: $ExportPath. Error: $_"
+        return
     }
     
-    # Determine which tests to run
-    if ($IncludeTests) {
-        $testsToRun = $allTests.Keys | Where-Object { $_ -in $IncludeTests -and $_ -notin $ExcludeTests }
-    }
-    else {
-        $testsToRun = $allTests.Keys | Where-Object { $_ -notin $ExcludeTests }
-    }
+    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    $logPath = Join-Path $ExportPath "ADSecurityAudit_Log_$timestamp.txt"
+    Start-Transcript -Path $logPath -Force
     
-    # Run tests and collect findings
-    $allFindings = @()
-    
-    foreach ($testName in $testsToRun) {
-        Write-Host "Running test: $testName..." -ForegroundColor Yellow
+    try {
+        $startTime = Get-Date
+        Write-Host "`n==================================================" -ForegroundColor Cyan
+        Write-Host "Active Directory Security Assessment" -ForegroundColor Cyan
+        Write-Host "==================================================" -ForegroundColor Cyan
+        Write-Host "Start Time: $startTime`n" -ForegroundColor Gray
         
+        # Verify AD module is available
+        if (-not (Get-Module -ListAvailable -Name ActiveDirectory)) {
+            Write-Error "Active Directory PowerShell module is not installed. Please install RSAT tools."
+            return
+        }
+        
+        Import-Module ActiveDirectory -ErrorAction Stop
+        
+        Write-Verbose "Testing Domain Controller connectivity..."
         try {
-            $testResults = & $allTests[$testName]
-            $allFindings += $testResults
+            $domain = Get-ADDomain -ErrorAction Stop
+            $dc = Get-ADDomainController -Discover -ErrorAction Stop
             
-            $criticalCount = ($testResults | Where-Object { $_.Severity -eq 'Critical' }).Count
-            $highCount = ($testResults | Where-Object { $_.Severity -eq 'High' }).Count
-            $mediumCount = ($testResults | Where-Object { $_.Severity -eq 'Medium' }).Count
-            $lowCount = ($testResults | Where-Object { $_.Severity -eq 'Low' }).Count
-            
-            Write-Host "  Found: $criticalCount Critical, $highCount High, $mediumCount Medium, $lowCount Low`n" -ForegroundColor Gray
+            if (-not (Test-Connection -ComputerName $dc.HostName -Count 1 -Quiet)) {
+                Write-Warning "Cannot reach Domain Controller: $($dc.HostName). Proceeding anyway..."
+            }
+            else {
+                Write-Verbose "Successfully connected to Domain Controller: $($dc.HostName)"
+            }
         }
         catch {
-            Write-Warning "Test '$testName' failed: $_"
+            Write-Error "Failed to connect to Active Directory Domain: $_"
+            return
         }
-    }
-    
-    # Enumerate privileged users if requested
-    $privilegedUsers = $null
-    if ($IncludePrivilegedUsersReport) {
-        Write-Host "Enumerating privileged users..." -ForegroundColor Yellow
-        try {
-            $privilegedUsers = Get-ADPrivilegedUsers
-            Write-Host "  Found: $($privilegedUsers.Count) privileged users`n" -ForegroundColor Gray
+        
+        Write-Host "Domain: $($domain.DNSRoot)" -ForegroundColor Green
+        Write-Host "Domain DN: $($domain.DistinguishedName)`n" -ForegroundColor Green
+        
+        # Define all tests
+        $allTests = @{
+            'UserAccounts' = { Test-ADUserSecurity -InactiveDaysThreshold $InactiveDaysThreshold -PasswordAgeThreshold $PasswordAgeThreshold }
+            'PrivilegedGroups' = { Test-ADPrivilegedGroups }
+            'AdminSDHolder' = { Test-AdminSDHolder }
+            'GroupPolicies' = { Test-ADGroupPolicies }
+            'ReplicationSecurity' = { Test-ADReplicationSecurity }
+            'DomainSecurity' = { Test-ADDomainSecurity }
+            'DangerousPermissions' = { Test-ADDangerousPermissions }
         }
-        catch {
-            Write-Warning "Failed to enumerate privileged users: $_"
+        
+        # Determine which tests to run
+        if ($IncludeTests) {
+            $testsToRun = $allTests.Keys | Where-Object { $_ -in $IncludeTests -and $_ -notin $ExcludeTests }
         }
-    }
-    
-    $endTime = Get-Date
-    $duration = $endTime - $startTime
-    
-    # Generate summary
-    Write-Host "`n==================================================" -ForegroundColor Cyan
-    Write-Host "Audit Summary" -ForegroundColor Cyan
-    Write-Host "==================================================" -ForegroundColor Cyan
-    
-    $summary = @{
-        Critical = ($allFindings | Where-Object { $_.Severity -eq 'Critical' }).Count
-        High = ($allFindings | Where-Object { $_.Severity -eq 'High' }).Count
-        Medium = ($allFindings | Where-Object { $_.Severity -eq 'Medium' }).Count
-        Low = ($allFindings | Where-Object { $_.Severity -eq 'Low' }).Count
-    }
-    
-    Write-Host "Total Findings: $($allFindings.Count)" -ForegroundColor White
-    Write-Host "  Critical: $($summary.Critical)" -ForegroundColor Red
-    Write-Host "  High: $($summary.High)" -ForegroundColor DarkRed
-    Write-Host "  Medium: $($summary.Medium)" -ForegroundColor Yellow
-    Write-Host "  Low: $($summary.Low)" -ForegroundColor Gray
-    
-    if ($privilegedUsers) {
-        Write-Host "`nPrivileged Users: $($privilegedUsers.Count)" -ForegroundColor White
-    }
-    
-    Write-Host "`nDuration: $($duration.TotalSeconds) seconds" -ForegroundColor Gray
-    
-    # Export results
-    if ($allFindings.Count -gt 0) {
-        $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+        else {
+            $testsToRun = $allTests.Keys | Where-Object { $_ -notin $ExcludeTests }
+        }
         
-        # Export to JSON
-        $jsonPath = Join-Path $ExportPath "AD_Security_Audit_$timestamp.json"
-        $allFindings | ConvertTo-Json -Depth 10 | Out-File -FilePath $jsonPath -Encoding UTF8
-        Write-Host "`nDetailed report exported to: $jsonPath" -ForegroundColor Green
+        # Run tests and collect findings
+        $allFindings = @()
         
-        # Export to HTML
-        $htmlPath = Join-Path $ExportPath "AD_Security_Audit_$timestamp.html"
-        Export-ADSecurityReportHTML -Findings $allFindings -OutputPath $htmlPath -Domain $domain.DNSRoot -Summary $summary -Duration $duration -PrivilegedUsers $privilegedUsers
-        Write-Host "HTML report exported to: $htmlPath" -ForegroundColor Green
+        foreach ($testName in $testsToRun) {
+            Write-Host "Running test: $testName..." -ForegroundColor Yellow
+            
+            try {
+                $testResults = & $allTests[$testName]
+                $allFindings += $testResults
+                
+                $criticalCount = ($testResults | Where-Object { $_.Severity -eq 'Critical' }).Count
+                $highCount = ($testResults | Where-Object { $_.Severity -eq 'High' }).Count
+                $mediumCount = ($testResults | Where-Object { $_.Severity -eq 'Medium' }).Count
+                $lowCount = ($testResults | Where-Object { $_.Severity -eq 'Low' }).Count
+                
+                Write-Host "  Found: $criticalCount Critical, $highCount High, $mediumCount Medium, $lowCount Low`n" -ForegroundColor Gray
+            }
+            catch {
+                Write-Warning "Test '$testName' failed: $_"
+            }
+        }
         
-        # Export to CSV
-        $csvPath = Join-Path $ExportPath "AD_Security_Audit_$timestamp.csv"
-        $allFindings | Select-Object Category, Issue, Severity, AffectedObject, Description, Impact, Remediation, DetectedDate | 
-            Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
-        Write-Host "CSV report exported to: $csvPath" -ForegroundColor Green
+        # Enumerate privileged users if requested
+        $privilegedUsers = $null
+        if ($IncludePrivilegedUsersReport) {
+            Write-Host "Enumerating privileged users..." -ForegroundColor Yellow
+            try {
+                $privilegedUsers = Get-ADPrivilegedUsers
+                Write-Host "  Found: $($privilegedUsers.Count) privileged users`n" -ForegroundColor Gray
+            }
+            catch {
+                Write-Warning "Failed to enumerate privileged users: $_"
+            }
+        }
+        
+        $endTime = Get-Date
+        $duration = $endTime - $startTime
+        
+        # Generate summary
+        Write-Host "`n==================================================" -ForegroundColor Cyan
+        Write-Host "Audit Summary" -ForegroundColor Cyan
+        Write-Host "==================================================" -ForegroundColor Cyan
+        
+        $summary = @{
+            Critical = ($allFindings | Where-Object { $_.Severity -eq 'Critical' }).Count
+            High = ($allFindings | Where-Object { $_.Severity -eq 'High' }).Count
+            Medium = ($allFindings | Where-Object { $_.Severity -eq 'Medium' }).Count
+            Low = ($allFindings | Where-Object { $_.Severity -eq 'Low' }).Count
+        }
+        
+        Write-Host "Total Findings: $($allFindings.Count)" -ForegroundColor White
+        Write-Host "  Critical: $($summary.Critical)" -ForegroundColor Red
+        Write-Host "  High: $($summary.High)" -ForegroundColor DarkRed
+        Write-Host "  Medium: $($summary.Medium)" -ForegroundColor Yellow
+        Write-Host "  Low: $($summary.Low)" -ForegroundColor Gray
+        
+        if ($privilegedUsers) {
+            Write-Host "`nPrivileged Users: $($privilegedUsers.Count)" -ForegroundColor White
+        }
+        
+        Write-Host "`nDuration: $($duration.TotalSeconds) seconds" -ForegroundColor Gray
+        
+        # Export results
+        if ($allFindings.Count -gt 0) {
+            # Export to JSON
+            $jsonPath = Join-Path $ExportPath "AD_Security_Audit_$timestamp.json"
+            $allFindings | ConvertTo-Json -Depth 10 | Out-File -FilePath $jsonPath -Encoding UTF8
+            Write-Host "`nDetailed report exported to: $jsonPath" -ForegroundColor Green
+            
+            # Export to HTML
+            $htmlPath = Join-Path $ExportPath "AD_Security_Audit_$timestamp.html"
+            Export-ADSecurityReportHTML -Findings $allFindings -OutputPath $htmlPath -Domain $domain.DNSRoot -Summary $summary -Duration $duration -PrivilegedUsers $privilegedUsers
+            Write-Host "HTML report exported to: $htmlPath" -ForegroundColor Green
+            
+            # Export to CSV
+            $csvPath = Join-Path $ExportPath "AD_Security_Audit_$timestamp.csv"
+            $allFindings | Select-Object Category, Issue, Severity, AffectedObject, Description, Impact, Remediation, DetectedDate | 
+                Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
+            Write-Host "CSV report exported to: $csvPath" -ForegroundColor Green
+        }
+        
+        # Export privileged users report
+        if ($privilegedUsers -and $privilegedUsers.Count -gt 0) {
+            $privilegedUsersCsvPath = Join-Path $ExportPath "AD_Privileged_Users_$timestamp.csv"
+            
+            $privilegedUsers | Select-Object SamAccountName, DisplayName, UserPrincipalName, Enabled, PasswordLastSet, `
+                PasswordNeverExpires, LastLogonDate, AdminCount, PrivilegedGroupsString, Title, Department, `
+                DoesNotRequirePreAuth, TrustedForDelegation, HasSPN, SPNCount | 
+                Export-Csv -Path $privilegedUsersCsvPath -NoTypeInformation -Encoding UTF8
+            
+            Write-Host "Privileged users report exported to: $privilegedUsersCsvPath" -ForegroundColor Green
+        }
+        
+        Write-Host "`n==================================================" -ForegroundColor Cyan
+        Write-Host "Audit Complete" -ForegroundColor Cyan
+        Write-Host "==================================================`n" -ForegroundColor Cyan
+        
+        return $allFindings
     }
-    
-    # Export privileged users report
-    if ($privilegedUsers -and $privilegedUsers.Count -gt 0) {
-        $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-        $privilegedUsersCsvPath = Join-Path $ExportPath "AD_Privileged_Users_$timestamp.csv"
-        
-        $privilegedUsers | Select-Object SamAccountName, DisplayName, UserPrincipalName, Enabled, PasswordLastSet, `
-            PasswordNeverExpires, LastLogonDate, AdminCount, PrivilegedGroupsString, Title, Department, `
-            DoesNotRequirePreAuth, TrustedForDelegation, HasSPN, SPNCount | 
-            Export-Csv -Path $privilegedUsersCsvPath -NoTypeInformation -Encoding UTF8
-        
-        Write-Host "Privileged users report exported to: $privilegedUsersCsvPath" -ForegroundColor Green
+    finally {
+        Stop-Transcript
     }
-    
-    Write-Host "`n==================================================" -ForegroundColor Cyan
-    Write-Host "Audit Complete" -ForegroundColor Cyan
-    Write-Host "==================================================`n" -ForegroundColor Cyan
-    
-    return $allFindings
 }
 
-<#
-.SYNOPSIS
-    Exports audit findings to HTML report
-#>
 function Export-ADSecurityReportHTML {
     [CmdletBinding()]
     param(
@@ -1553,13 +1585,20 @@ function Export-ADSecurityReportHTML {
     $mediumFindings = $Findings | Where-Object { $_.Severity -eq 'Medium' } | Sort-Object Category
     $lowFindings = $Findings | Where-Object { $_.Severity -eq 'Low' } | Sort-Object Category
     
+    function HtmlEncode($text) {
+        if ($text) {
+            return $text -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;' -replace '"', '&quot;' -replace "'", '&#39;'
+        }
+        return $text
+    }
+    
     $html = @"
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AD Security Assessment Report - $Domain</title>
+    <title>AD Security Assessment Report - $(HtmlEncode $Domain)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; padding: 20px; }
@@ -1596,7 +1635,6 @@ function Export-ADSecurityReportHTML {
         .finding-section { margin: 15px 0; padding: 15px; background: white; border-radius: 4px; }
         .finding-section h4 { color: #555; margin-bottom: 10px; font-size: 1em; text-transform: uppercase; letter-spacing: 0.5px; }
         .finding-section p { color: #666; line-height: 1.7; }
-        .code-block { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 4px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.9em; margin-top: 10px; }
         .privileged-users-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9em; }
         .privileged-users-table th { background: #34495e; color: white; padding: 12px; text-align: left; font-weight: 600; }
         .privileged-users-table td { padding: 10px; border-bottom: 1px solid #ecf0f1; }
@@ -1605,6 +1643,8 @@ function Export-ADSecurityReportHTML {
         .status-enabled { color: #27ae60; font-weight: bold; }
         .status-disabled { color: #e74c3c; font-weight: bold; }
         .footer { margin-top: 50px; padding-top: 20px; border-top: 2px solid #ecf0f1; text-align: center; color: #7f8c8d; font-size: 0.9em; }
+        .warning-box { background: #fff3cd; border-left: 4px solid #f39c12; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .warning-box p { color: #856404; margin: 5px 0; }
         @media print { body { background: white; padding: 0; } .container { box-shadow: none; } }
     </style>
 </head>
@@ -1612,8 +1652,13 @@ function Export-ADSecurityReportHTML {
     <div class="container">
         <h1>🛡️ Active Directory Security Assessment Report</h1>
         
+        <div class="warning-box">
+            <p><strong>⚠️ CONFIDENTIAL SECURITY REPORT</strong></p>
+            <p>This report contains sensitive security information about your Active Directory environment. Handle with care and share only with authorized personnel.</p>
+        </div>
+        
         <div class="header-info">
-            <div><strong>DOMAIN</strong><span style="font-size: 1.2em; color: #2c3e50;">$Domain</span></div>
+            <div><strong>DOMAIN</strong><span style="font-size: 1.2em; color: #2c3e50;">$(HtmlEncode $Domain)</span></div>
             <div><strong>REPORT DATE</strong><span style="font-size: 1.2em; color: #2c3e50;">$reportDate</span></div>
             <div><strong>SCAN DURATION</strong><span style="font-size: 1.2em; color: #2c3e50;">$([math]::Round($Duration.TotalSeconds, 2)) seconds</span></div>
             <div><strong>TOTAL FINDINGS</strong><span style="font-size: 1.2em; color: #2c3e50;">$($Findings.Count)</span></div>
@@ -1666,21 +1711,21 @@ function Export-ADSecurityReportHTML {
             $enabledText = if ($user.Enabled) { 'Yes' } else { 'No' }
             
             $securityFlags = @()
-            if ($user.PasswordNeverExpires) { $securityFlags += '🔓 Pwd Never Expires' }
-            if ($user.DoesNotRequirePreAuth) { $securityFlags += '⚠️ No PreAuth' }
-            if ($user.TrustedForDelegation) { $securityFlags += '🔑 Delegation' }
-            if ($user.HasSPN) { $securityFlags += "🎯 SPN($($user.SPNCount))" }
-            $flagsText = if ($securityFlags.Count -gt 0) { $securityFlags -join ' ' } else { '-' }
+            if ($user.PasswordNeverExpires) { $securityFlags += 'Pwd Never Expires' }
+            if ($user.DoesNotRequirePreAuth) { $securityFlags += 'No PreAuth' }
+            if ($user.TrustedForDelegation) { $securityFlags += 'Delegation' }
+            if ($user.HasSPN) { $securityFlags += "SPN($($user.SPNCount))" }
+            $flagsText = if ($securityFlags.Count -gt 0) { HtmlEncode ($securityFlags -join ', ') } else { '-' }
             
             $passwordLastSet = if ($user.PasswordLastSet) { $user.PasswordLastSet.ToString('yyyy-MM-dd') } else { 'Never' }
             $lastLogon = if ($user.LastLogonDate) { $user.LastLogonDate.ToString('yyyy-MM-dd') } else { 'Never' }
             
             $html += @"
                     <tr>
-                        <td><strong>$($user.SamAccountName)</strong></td>
-                        <td>$($user.DisplayName)</td>
+                        <td><strong>$(HtmlEncode $user.SamAccountName)</strong></td>
+                        <td>$(HtmlEncode $user.DisplayName)</td>
                         <td class="$enabledClass">$enabledText</td>
-                        <td style="font-size: 0.85em;">$($user.PrivilegedGroupsString)</td>
+                        <td style="font-size: 0.85em;">$(HtmlEncode $user.PrivilegedGroupsString)</td>
                         <td>$passwordLastSet</td>
                         <td>$lastLogon</td>
                         <td style="font-size: 0.85em;">$flagsText</td>
@@ -1726,8 +1771,9 @@ function Export-ADSecurityReportHTML {
     
     $html += @"
         <div class="footer">
-            <p>Generated by ADSecurityAudit Module v1.0.0</p>
+            <p><strong>Generated by ADSecurityAudit Module v1.0.0</strong></p>
             <p>This report should be treated as confidential and shared only with authorized personnel.</p>
+            <p>Review findings, prioritize remediation by severity, and implement security best practices.</p>
         </div>
     </div>
 </body>
@@ -1737,10 +1783,6 @@ function Export-ADSecurityReportHTML {
     $html | Out-File -FilePath $OutputPath -Encoding UTF8
 }
 
-<#
-.SYNOPSIS
-    Generates HTML for a single finding
-#>
 function Get-FindingHTML {
     [CmdletBinding()]
     param(
@@ -1748,30 +1790,46 @@ function Get-FindingHTML {
         [ADSecurityFinding]$Finding
     )
     
+    function HtmlEncode($text) {
+        if ($text) {
+            return $text -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;' -replace '"', '&quot;' -replace "'", '&#39;'
+        }
+        return $text
+    }
+    
     $severityClass = $Finding.Severity.ToLower()
+    $description = HtmlEncode $Finding.Description
+    $impact = HtmlEncode $Finding.Impact
+    $remediation = HtmlEncode $Finding.Remediation
+    $issue = HtmlEncode $Finding.Issue
+    $category = HtmlEncode $Finding.Category
+    $affectedObject = HtmlEncode $Finding.AffectedObject
+    
+    # Handle multi-line remediation
+    $remediation = $remediation -replace "`r`n", '<br>' -replace "`n", '<br>'
     
     return @"
         <div class="finding $severityClass">
             <div class="finding-header">
-                <div class="finding-title">$($Finding.Issue)</div>
+                <div class="finding-title">$issue</div>
                 <span class="severity-badge severity-$severityClass">$($Finding.Severity)</span>
             </div>
             <div class="finding-meta">
-                <span><strong>Category:</strong> $($Finding.Category)</span>
-                <span><strong>Affected Object:</strong> $($Finding.AffectedObject)</span>
+                <span><strong>Category:</strong> $category</span>
+                <span><strong>Affected Object:</strong> $affectedObject</span>
                 <span><strong>Detected:</strong> $($Finding.DetectedDate.ToString('yyyy-MM-dd HH:mm'))</span>
             </div>
             <div class="finding-section">
                 <h4>📝 Description</h4>
-                <p>$($Finding.Description)</p>
+                <p>$description</p>
             </div>
             <div class="finding-section">
                 <h4>⚠️ Impact</h4>
-                <p>$($Finding.Impact)</p>
+                <p>$impact</p>
             </div>
             <div class="finding-section">
                 <h4>✅ Remediation</h4>
-                <p>$($Finding.Remediation)</p>
+                <p>$remediation</p>
             </div>
         </div>
 "@
