@@ -2,7 +2,7 @@
 
 A comprehensive PowerShell module for identifying misconfigurations and security vulnerabilities within Active Directory environments.
 
-## 🎯 Features
+## Features
 
 - **User Account Auditing**: Detects AS-REP Roasting vulnerabilities, weak encryption, reversible passwords, unconstrained delegation, Kerberoasting risks, and inactive accounts
 - **Privileged Group Analysis**: Identifies excessive membership, nested groups, and disabled users in critical groups
@@ -12,14 +12,14 @@ A comprehensive PowerShell module for identifying misconfigurations and security
 - **Domain Security Settings**: Evaluates password policies, functional levels, and legacy systems
 - **Dangerous Permissions**: Locates overly permissive rights on critical AD objects
 
-## 📋 Requirements
+## Requirements
 
 - Windows PowerShell 5.1 or PowerShell 7+
 - Active Directory PowerShell Module (RSAT)
 - Domain Administrator or equivalent permissions for full audit
 - Windows Server 2016 or later (recommended)
 
-## 🚀 Installation
+## Installation
 
 1. Copy the module to your PowerShell modules directory:
 ```powershell
