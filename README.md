@@ -37,30 +37,30 @@ A comprehensive PowerShell module for identifying misconfigurations and security
 ## Installation
 
 1. Copy the module to your PowerShell modules directory:
-\`\`\`powershell
+powershell
 $modulePath = "$env:ProgramFiles\WindowsPowerShell\Modules\ADSecurityAudit"
 New-Item -Path $modulePath -ItemType Directory -Force
 Copy-Item -Path ".\ADSecurityAudit-Enhanced.psm1" -Destination "$modulePath\ADSecurityAudit.psm1"
-\`\`\`
+
 
 2. Import the module:
-\`\`\`powershell
+powershell
 Import-Module ADSecurityAudit
-\`\`\`
+
 
 ## Usage
 
 ### Basic Audit
 Run a complete security audit with default settings:
-\`\`\`powershell
+
 Start-ADSecurityAudit -OutputPath "C:\ADReports"
-\`\`\`
+
 
 ### Advanced Options
 Customize the audit with additional parameters:
-\`\`\`powershell
+
 Start-ADSecurityAudit -OutputPath "C:\ADReports" -Verbose
-\`\`\`
+
 
 ### Output Formats
 The script generates three report formats:
@@ -148,10 +148,10 @@ Each finding includes:
 ### Common Issues
 
 **Module Import Failure**
-\`\`\`powershell
+
 # Ensure RSAT is installed
 Get-WindowsCapability -Name RSAT.ActiveDirectory* -Online | Add-WindowsCapability -Online
-\`\`\`
+
 
 **Permission Denied**
 - Run PowerShell as Administrator
@@ -185,30 +185,27 @@ Based on audit findings, implement these security controls:
 
 ### Scheduled Audits
 Create a scheduled task to run audits automatically:
-\`\`\`powershell
+
+powershell
 $action = New-ScheduledTaskAction -Execute "PowerShell.exe" `
     -Argument "-NoProfile -ExecutionPolicy Bypass -Command `"Import-Module ADSecurityAudit; Start-ADSecurityAudit -OutputPath 'C:\ADReports'`""
 $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At 2am
 Register-ScheduledTask -TaskName "AD Security Audit" -Action $action -Trigger $trigger -RunLevel Highest
-\`\`\`
+
 
 ### SIEM Integration
 Import JSON reports into your SIEM for correlation and alerting:
-\`\`\`powershell
+powershell
 # Example: Send findings to Splunk HEC
 $findings = Get-Content "C:\ADReports\AD_Security_Findings_*.json" | ConvertFrom-Json
 foreach ($finding in $findings) {
     Send-SplunkEvent -Finding $finding
 }
-\`\`\`
+
 
 ## Contributing
 
-Contributions are welcome! Please ensure:
-- Code follows PowerShell best practices
-- New checks include proper error handling
-- Findings have clear remediation guidance
-- Changes are tested in lab environment first
+Contributions are welcome! Seriously, I'm good at this stuff, but I know others are better. 
 
 ## License
 
@@ -216,7 +213,9 @@ MIT License - Use at your own risk. Always test in non-production environments f
 
 ## Disclaimer
 
-This tool performs read-only operations but requires elevated privileges. Always:
+This tool performs read-only operations but requires elevated privileges. 
+
+Always:
 - Review the code before running in production
 - Test in a lab environment first
 - Ensure you have proper authorization
