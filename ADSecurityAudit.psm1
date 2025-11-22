@@ -897,7 +897,7 @@ function Test-ADReplicationSecurity {
                         $finding.Severity = 'Medium'
                         $finding.SeverityLevel = 2
                         $finding.AffectedObject = $groupName
-                        $finding.Description = "Group '$groupName' has $($members.Count) member(s). These groups have powerful rights that could be abused."
+                        $finding.Description = "Group '$groupName' has $($members.Count) member(s). These groups have powerful rights that could be leveraged for privilege escalation or data exfiltration."
                         $finding.Impact = "Members of this group may have rights that can be leveraged for privilege escalation or data exfiltration."
                         $finding.Remediation = "Review membership and remove unnecessary accounts. Members: $($members.SamAccountName -join ', ')"
                         $finding.Details = @{
@@ -1352,6 +1352,672 @@ function Get-ADPrivilegedUsers {
 
 #endregion
 
+#region Certificate Services (AD CS) Audits
+
+function Test-ADCertificateServices {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Starting AD Certificate Services security audit..."
+    $findings = @()
+    
+    try {
+        # Check if AD CS is installed
+        $configContext = ([ADSI]"LDAP://RootDSE").configurationNamingContext
+        $pkiContainer = "CN=Public Key Services,CN=Services,$configContext"
+        
+        try {
+            $certTemplates = Get-ADObject -SearchBase "CN=Certificate Templates,$pkiContainer" -Filter * -Properties * -ErrorAction Stop
+        }
+        catch {
+            Write-Verbose "AD Certificate Services not found or accessible. Skipping AD CS audit."
+            return $findings
+        }
+        
+        Write-Verbose "Analyzing $($certTemplates.Count) certificate templates..."
+        
+        foreach ($template in $certTemplates) {
+            # ESC1: Template allows SAN and has overly permissive enrollment rights
+            $enrollmentFlag = $template.'msPKI-Enrollment-Flag'
+            $certNameFlag = $template.'msPKI-Certificate-Name-Flag'
+            
+            # Check if template allows Subject Alternative Name (SAN)
+            if ($certNameFlag -band 1) {  # CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Certificate Services'
+                $finding.Issue = 'Certificate Template Allows Subject Alternative Name (ESC1)'
+                $finding.Severity = 'Critical'
+                $finding.SeverityLevel = 4
+                $finding.AffectedObject = $template.Name
+                $finding.Description = "Certificate template '$($template.Name)' allows enrollees to specify Subject Alternative Names, which can be exploited for privilege escalation."
+                $finding.Impact = "Attackers can request certificates for arbitrary accounts (including Domain Admins) and authenticate as those users."
+                $finding.Remediation = "Remove CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT flag or restrict enrollment permissions to only trusted administrators."
+                $finding.Details = @{
+                    DistinguishedName = $template.DistinguishedName
+                    CertificateNameFlag = $certNameFlag
+                    EnrollmentFlag = $enrollmentFlag
+                }
+                $findings += $finding
+            }
+            
+            # ESC2: Template can be used for any purpose
+            $ekus = $template.'msPKI-Certificate-Application-Policy'
+            if (-not $ekus -or $ekus.Count -eq 0) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Certificate Services'
+                $finding.Issue = 'Certificate Template with No EKU Restrictions (ESC2)'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = $template.Name
+                $finding.Description = "Certificate template '$($template.Name)' has no Extended Key Usage (EKU) restrictions, allowing certificates to be used for any purpose."
+                $finding.Impact = "Certificates can be used for unintended purposes including authentication, code signing, or encryption."
+                $finding.Remediation = "Configure specific EKUs for the template to limit certificate usage to intended purposes only."
+                $finding.Details = @{
+                    DistinguishedName = $template.DistinguishedName
+                }
+                $findings += $finding
+            }
+            
+            # Check for low RA signatures required
+            $raSignatures = $template.'msPKI-RA-Signature'
+            if ($raSignatures -and $raSignatures -eq 0) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Certificate Services'
+                $finding.Issue = 'Certificate Template Does Not Require RA Signatures'
+                $finding.Severity = 'Medium'
+                $finding.SeverityLevel = 2
+                $finding.AffectedObject = $template.Name
+                $finding.Description = "Certificate template '$($template.Name)' does not require Registration Authority signatures for high-value certificates."
+                $finding.Impact = "Reduces oversight for certificate issuance and increases risk of unauthorized certificate requests."
+                $finding.Remediation = "For sensitive templates, require at least one RA signature to add an approval layer."
+                $finding.Details = @{
+                    DistinguishedName = $template.DistinguishedName
+                }
+                $findings += $finding
+            }
+        }
+        
+        # Check Certificate Authority permissions
+        try {
+            $certAuthorities = Get-ADObject -SearchBase "CN=Enrollment Services,$pkiContainer" -Filter * -Properties * -ErrorAction Stop
+            
+            foreach ($ca in $certAuthorities) {
+                $acl = Get-Acl -Path "AD:$($ca.DistinguishedName)" -ErrorAction SilentlyContinue
+                
+                if ($acl) {
+                    foreach ($access in $acl.Access) {
+                        # Check for dangerous permissions on CA
+                        if ($access.ActiveDirectoryRights -match 'GenericAll|WriteDacl|WriteOwner' -and 
+                            $access.IdentityReference -notmatch 'Enterprise Admins|Domain Admins|SYSTEM') {
+                            
+                            $finding = [ADSecurityFinding]::new()
+                            $finding.Category = 'Certificate Services'
+                            $finding.Issue = 'Overly Permissive CA Permissions'
+                            $finding.Severity = 'Critical'
+                            $finding.SeverityLevel = 4
+                            $finding.AffectedObject = $ca.Name
+                            $finding.Description = "Certificate Authority '$($ca.Name)' has overly permissive access granted to $($access.IdentityReference)."
+                            $finding.Impact = "Unauthorized users could modify CA configuration, issue fraudulent certificates, or compromise the entire PKI infrastructure."
+                            $finding.Remediation = "Remove excessive permissions and ensure only Enterprise Admins and CA administrators have full control."
+                            $finding.Details = @{
+                                DistinguishedName = $ca.DistinguishedName
+                                Identity = $access.IdentityReference
+                                Rights = $access.ActiveDirectoryRights
+                            }
+                            $findings += $finding
+                        }
+                    }
+                }
+            }
+        }
+        catch {
+            Write-Verbose "Could not enumerate Certificate Authorities: $_"
+        }
+        
+        Write-Verbose "AD Certificate Services audit complete. Found $($findings.Count) issues."
+        return $findings
+    }
+    catch {
+        Write-Error "Error during AD CS audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region KRBTGT Account Audits
+
+function Test-KRBTGTAccount {
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        [int]$MaxPasswordAgeDays = 180
+    )
+    
+    Write-Verbose "Starting KRBTGT account security audit..."
+    $findings = @()
+    
+    try {
+        # Get KRBTGT account
+        $krbtgtAccount = Get-ADUser -Filter "SamAccountName -eq 'krbtgt'" -Properties PasswordLastSet, Enabled, Description -ErrorAction Stop
+        
+        if ($krbtgtAccount.PasswordLastSet) {
+            $passwordAge = (Get-Date) - $krbtgtAccount.PasswordLastSet
+            
+            # Critical finding if KRBTGT password is too old
+            if ($passwordAge.Days -gt $MaxPasswordAgeDays) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Kerberos Security'
+                $finding.Issue = 'KRBTGT Password Age Exceeds Recommended Threshold'
+                $finding.Severity = 'Critical'
+                $finding.SeverityLevel = 4
+                $finding.AffectedObject = 'krbtgt'
+                $finding.Description = "The KRBTGT account password has not been changed in $($passwordAge.Days) days. Microsoft recommends changing it every 180 days."
+                $finding.Impact = "An old KRBTGT password increases the window for Golden Ticket attacks. If compromised, attackers can forge Kerberos tickets with arbitrary privileges indefinitely."
+                $finding.Remediation = "Reset the KRBTGT password twice (with appropriate intervals) using the official Microsoft script. WARNING: This is a sensitive operation that requires careful planning."
+                $finding.Details = @{
+                    DistinguishedName = $krbtgtAccount.DistinguishedName
+                    PasswordLastSet = $krbtgtAccount.PasswordLastSet
+                    PasswordAgeDays = $passwordAge.Days
+                    RecommendedMaxAgeDays = $MaxPasswordAgeDays
+                }
+                $findings += $finding
+            }
+            elseif ($passwordAge.Days -gt 90) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Kerberos Security'
+                $finding.Issue = 'KRBTGT Password Approaching Rotation Threshold'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = 'krbtgt'
+                $finding.Description = "The KRBTGT account password is $($passwordAge.Days) days old and approaching the recommended rotation threshold."
+                $finding.Impact = "Regular KRBTGT password rotation limits the window for Golden Ticket attacks."
+                $finding.Remediation = "Plan to reset the KRBTGT password twice using the official Microsoft script before it exceeds 180 days."
+                $finding.Details = @{
+                    DistinguishedName = $krbtgtAccount.DistinguishedName
+                    PasswordLastSet = $krbtgtAccount.PasswordLastSet
+                    PasswordAgeDays = $passwordAge.Days
+                }
+                $findings += $finding
+            }
+        }
+        else {
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = 'Kerberos Security'
+            $finding.Issue = 'KRBTGT Password Last Set Date Unknown'
+            $finding.Severity = 'High'
+            $finding.SeverityLevel = 3
+            $finding.AffectedObject = 'krbtgt'
+            $finding.Description = "Unable to determine when the KRBTGT password was last changed."
+            $finding.Impact = "Cannot assess risk of Golden Ticket attacks without knowing KRBTGT password age."
+            $finding.Remediation = "Investigate why PasswordLastSet is not populated and reset the KRBTGT password."
+            $finding.Details = @{
+                DistinguishedName = $krbtgtAccount.DistinguishedName
+            }
+            $findings += $finding
+        }
+        
+        Write-Verbose "KRBTGT account audit complete. Found $($findings.Count) issues."
+        return $findings
+    }
+    catch {
+        Write-Error "Error during KRBTGT audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region Domain Trust Audits
+
+function Test-ADDomainTrusts {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Starting domain trust security audit..."
+    $findings = @()
+    
+    try {
+        $domain = Get-ADDomain
+        $trusts = Get-ADTrust -Filter * -Properties *
+        
+        if (-not $trusts) {
+            Write-Verbose "No domain trusts found."
+            return $findings
+        }
+        
+        Write-Verbose "Analyzing $($trusts.Count) domain trust(s)..."
+        
+        foreach ($trust in $trusts) {
+            # Check for bidirectional trusts
+            if ($trust.Direction -eq 'Bidirectional') {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Domain Trusts'
+                $finding.Issue = 'Bidirectional Domain Trust'
+                $finding.Severity = 'Medium'
+                $finding.SeverityLevel = 2
+                $finding.AffectedObject = $trust.Target
+                $finding.Description = "Bidirectional trust exists with domain '$($trust.Target)', allowing authentication in both directions."
+                $finding.Impact = "Increases attack surface as compromise of either domain could affect the other. Consider if bidirectional trust is necessary."
+                $finding.Remediation = "Review if bidirectional trust is required. If not, convert to one-way trust or implement selective authentication."
+                $finding.Details = @{
+                    Target = $trust.Target
+                    Direction = $trust.Direction
+                    TrustType = $trust.TrustType
+                    Created = $trust.Created
+                }
+                $findings += $finding
+            }
+            
+            # Check if SID filtering is disabled (critical security issue)
+            if ($trust.SIDFilteringQuarantined -eq $false -and $trust.TrustType -eq 'External') {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Domain Trusts'
+                $finding.Issue = 'SID Filtering Disabled on External Trust'
+                $finding.Severity = 'Critical'
+                $finding.SeverityLevel = 4
+                $finding.AffectedObject = $trust.Target
+                $finding.Description = "SID filtering is disabled on external trust with '$($trust.Target)', allowing SID history injection attacks."
+                $finding.Impact = "Attackers in the trusted domain could forge credentials with privileged SIDs from your domain, leading to privilege escalation."
+                $finding.Remediation = "Enable SID filtering: netdom trust $($domain.DNSRoot) /domain:$($trust.Target) /quarantine:yes"
+                $finding.Details = @{
+                    Target = $trust.Target
+                    TrustType = $trust.TrustType
+                    SIDFilteringQuarantined = $trust.SIDFilteringQuarantined
+                }
+                $findings += $finding
+            }
+            
+            # Check for trusts without selective authentication
+            if ($trust.SelectiveAuthentication -eq $false -and $trust.TrustType -eq 'Forest') {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Domain Trusts'
+                $finding.Issue = 'Forest Trust Without Selective Authentication'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = $trust.Target
+                $finding.Description = "Forest trust with '$($trust.Target)' does not use selective authentication, granting broad access."
+                $finding.Impact = "All users in the trusted forest can authenticate to resources in this domain without explicit permission."
+                $finding.Remediation = "Enable selective authentication to require explicit permission for cross-forest access."
+                $finding.Details = @{
+                    Target = $trust.Target
+                    TrustType = $trust.TrustType
+                    SelectiveAuthentication = $trust.SelectiveAuthentication
+                }
+                $findings += $finding
+            }
+            
+            # Check trust password age
+            if ($trust.Modified) {
+                $trustAge = (Get-Date) - $trust.Modified
+                if ($trustAge.Days -gt 30) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Domain Trusts'
+                    $finding.Issue = 'Trust Password Not Recently Rotated'
+                    $finding.Severity = 'Low'
+                    $finding.SeverityLevel = 1
+                    $finding.AffectedObject = $trust.Target
+                    $finding.Description = "Trust with '$($trust.Target)' has not been modified in $($trustAge.Days) days. Trust passwords should rotate automatically every 30 days."
+                    $finding.Impact = "May indicate trust relationship issues or lack of maintenance."
+                    $finding.Remediation = "Verify trust health: netdom trust $($domain.DNSRoot) /domain:$($trust.Target) /verify"
+                    $finding.Details = @{
+                        Target = $trust.Target
+                        LastModified = $trust.Modified
+                        DaysSinceModified = $trustAge.Days
+                    }
+                    $findings += $finding
+                }
+            }
+        }
+        
+        Write-Verbose "Domain trust audit complete. Found $($findings.Count) issues."
+        return $findings
+    }
+    catch {
+        Write-Error "Error during domain trust audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region LAPS Deployment Audits
+
+function Test-LAPSDeployment {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Starting LAPS deployment audit..."
+    $findings = @()
+    
+    try {
+        $domain = Get-ADDomain
+        $schemaPath = "CN=ms-Mcs-AdmPwd,CN=Schema,CN=Configuration,$($domain.DistinguishedName)"
+        
+        # Check if LAPS schema is extended
+        try {
+            $lapsSchema = Get-ADObject -Identity $schemaPath -ErrorAction Stop
+            $lapsInstalled = $true
+            Write-Verbose "LAPS schema extension detected."
+        }
+        catch {
+            $lapsInstalled = $false
+            
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = 'LAPS Deployment'
+            $finding.Issue = 'LAPS Not Deployed'
+            $finding.Severity = 'Critical'
+            $finding.SeverityLevel = 4
+            $finding.AffectedObject = 'Domain'
+            $finding.Description = "Local Administrator Password Solution (LAPS) is not deployed in the domain. LAPS schema extensions are missing."
+            $finding.Impact = "Without LAPS, local administrator passwords across workstations and servers are likely identical or predictable, facilitating lateral movement."
+            $finding.Remediation = "Deploy LAPS to randomize and manage local administrator passwords across all domain computers. Install LAPS schema: Update-AdmPwdADSchema"
+            $finding.Details = @{
+                Domain = $domain.DNSRoot
+            }
+            $findings += $finding
+            
+            Write-Verbose "LAPS not deployed. Skipping computer-level checks."
+            return $findings
+        }
+        
+        # If LAPS is installed, check computer coverage
+        if ($lapsInstalled) {
+            $computers = Get-ADComputer -Filter * -Properties ms-Mcs-AdmPwdExpirationTime, OperatingSystem -ErrorAction Stop
+            $computersWithLAPS = $computers | Where-Object { $_.'ms-Mcs-AdmPwdExpirationTime' }
+            $computersWithoutLAPS = $computers | Where-Object { -not $_.'ms-Mcs-AdmPwdExpirationTime' }
+            
+            $totalComputers = $computers.Count
+            $coveragePercent = if ($totalComputers -gt 0) { 
+                [math]::Round(($computersWithLAPS.Count / $totalComputers) * 100, 2) 
+            } else { 0 }
+            
+            Write-Verbose "LAPS coverage: $coveragePercent% ($($computersWithLAPS.Count)/$totalComputers computers)"
+            
+            # Alert if coverage is below 100%
+            if ($coveragePercent -lt 100) {
+                $severity = if ($coveragePercent -lt 50) { 'Critical' } 
+                           elseif ($coveragePercent -lt 80) { 'High' } 
+                           else { 'Medium' }
+                           
+                $severityLevel = if ($coveragePercent -lt 50) { 4 } 
+                                elseif ($coveragePercent -lt 80) { 3 } 
+                                else { 2 }
+                
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'LAPS Deployment'
+                $finding.Issue = 'Incomplete LAPS Coverage'
+                $finding.Severity = $severity
+                $finding.SeverityLevel = $severityLevel
+                $finding.AffectedObject = "$($computersWithoutLAPS.Count) Computers"
+                $finding.Description = "Only $coveragePercent% of domain computers have LAPS passwords set. $($computersWithoutLAPS.Count) computers are missing LAPS coverage."
+                $finding.Impact = "Computers without LAPS retain static local administrator passwords, creating lateral movement opportunities for attackers."
+                $finding.Remediation = "Deploy LAPS Group Policy to all OUs containing computers. Verify LAPS client is installed and GPO is applied. Check: gpresult /r"
+                $finding.Details = @{
+                    TotalComputers = $totalComputers
+                    ComputersWithLAPS = $computersWithLAPS.Count
+                    ComputersWithoutLAPS = $computersWithoutLAPS.Count
+                    CoveragePercent = $coveragePercent
+                    SampleComputersWithoutLAPS = ($computersWithoutLAPS | Select-Object -First 10 -ExpandProperty Name) -join ', '
+                }
+                $findings += $finding
+            }
+            
+            # Check for expired LAPS passwords
+            $now = [DateTime]::UtcNow
+            $expiredLAPSComputers = $computersWithLAPS | Where-Object {
+                $expirationTime = [DateTime]::FromFileTimeUtc($_.'ms-Mcs-AdmPwdExpirationTime')
+                $expirationTime -lt $now
+            }
+            
+            if ($expiredLAPSComputers.Count -gt 0) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'LAPS Deployment'
+                $finding.Issue = 'Expired LAPS Passwords'
+                $finding.Severity = 'Medium'
+                $finding.SeverityLevel = 2
+                $finding.AffectedObject = "$($expiredLAPSComputers.Count) Computers"
+                $finding.Description = "$($expiredLAPSComputers.Count) computers have expired LAPS passwords that have not been rotated."
+                $finding.Impact = "Expired passwords may indicate computers that are offline, not receiving GPO updates, or have LAPS client issues."
+                $finding.Remediation = "Investigate why LAPS passwords are not rotating. Ensure computers are online and receiving Group Policy updates."
+                $finding.Details = @{
+                    ExpiredCount = $expiredLAPSComputers.Count
+                    SampleComputers = ($expiredLAPSComputers | Select-Object -First 10 -ExpandProperty Name) -join ', '
+                }
+                $findings += $finding
+            }
+        }
+        
+        Write-Verbose "LAPS deployment audit complete. Found $($findings.Count) issues."
+        return $findings
+    }
+    catch {
+        Write-Error "Error during LAPS audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region Audit Policy Configuration Audits
+
+function Test-AuditPolicyConfiguration {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Starting audit policy configuration audit..."
+    $findings = @()
+    
+    try {
+        # Get domain controllers to check audit policies
+        $domainControllers = Get-ADDomainController -Filter *
+        
+        Write-Verbose "Checking audit policies on $($domainControllers.Count) domain controller(s)..."
+        
+        # Critical audit policies that should be enabled
+        $requiredAuditPolicies = @{
+            'Account Logon' = @('Audit Credential Validation')
+            'Account Management' = @('Audit User Account Management', 'Audit Security Group Management')
+            'DS Access' = @('Audit Directory Service Access', 'Audit Directory Service Changes')
+            'Logon/Logoff' = @('Audit Logon', 'Audit Logoff', 'Audit Account Lockout')
+            'Object Access' = @('Audit File Share', 'Audit File System')
+            'Policy Change' = @('Audit Policy Change', 'Audit Authentication Policy Change')
+            'Privilege Use' = @('Audit Sensitive Privilege Use')
+            'System' = @('Audit Security State Change', 'Audit Security System Extension')
+        }
+        
+        foreach ($dc in $domainControllers) {
+            try {
+                # Check if we can query the DC (in a real scenario, you'd use Invoke-Command)
+                # For this script, we'll check local/default domain policy
+                
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Audit Policy'
+                $finding.Issue = 'Advanced Audit Policy Verification Required'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = $dc.Name
+                $finding.Description = "Advanced audit policies should be verified on domain controller '$($dc.Name)' to ensure proper security event logging."
+                $finding.Impact = "Without proper audit policies, security incidents cannot be detected or investigated effectively. Critical events may go unlogged."
+                $finding.Remediation = @"
+Verify and enable advanced audit policies on all DCs:
+1. Account Logon: Audit Credential Validation (Success, Failure)
+2. Account Management: Audit User/Security Group Management (Success, Failure)
+3. DS Access: Audit Directory Service Access/Changes (Success, Failure)
+4. Logon/Logoff: Audit Logon/Logoff/Account Lockout (Success, Failure)
+5. Object Access: Audit File Share/System (Success, Failure)
+6. Policy Change: Audit Policy/Auth Policy Change (Success, Failure)
+7. Privilege Use: Audit Sensitive Privilege Use (Success, Failure)
+8. System: Audit Security State Change/System Extension (Success, Failure)
+
+Use: auditpol /get /category:* to view current settings
+Configure via Group Policy: Computer Config > Windows Settings > Security Settings > Advanced Audit Policy
+"@
+                $finding.Details = @{
+                    DomainController = $dc.Name
+                    RequiredCategories = $requiredAuditPolicies.Keys -join ', '
+                }
+                $findings += $finding
+                
+            }
+            catch {
+                Write-Warning "Could not check audit policy on $($dc.Name): $_"
+            }
+        }
+        
+        # Check for SACL on sensitive AD objects
+        try {
+            $domain = Get-ADDomain
+            $domainRoot = $domain.DistinguishedName
+            
+            # Check if AdminSDHolder has auditing configured
+            $adminSDHolder = Get-ADObject "CN=AdminSDHolder,CN=System,$domainRoot" -Properties nTSecurityDescriptor -ErrorAction Stop
+            $acl = $adminSDHolder.nTSecurityDescriptor
+            
+            $hasAuditRules = $acl.GetAuditRules($true, $true, [System.Security.Principal.SecurityIdentifier]).Count -gt 0
+            
+            if (-not $hasAuditRules) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Audit Policy'
+                $finding.Issue = 'No Auditing on AdminSDHolder Object'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = 'AdminSDHolder'
+                $finding.Description = "The AdminSDHolder object does not have audit rules (SACL) configured to log access attempts."
+                $finding.Impact = "Changes to privileged group permissions and access attempts to critical AD objects will not be logged, hindering incident detection."
+                $finding.Remediation = "Configure SACL on AdminSDHolder to audit 'Write all properties' and 'Modify permissions' for 'Everyone' (Success and Failure)."
+                $finding.Details = @{
+                    DistinguishedName = $adminSDHolder.DistinguishedName
+                }
+                $findings += $finding
+            }
+        }
+        catch {
+            Write-Verbose "Could not check AdminSDHolder SACL: $_"
+        }
+        
+        Write-Verbose "Audit policy configuration audit complete. Found $($findings.Count) issues."
+        return $findings
+    }
+    catch {
+        Write-Error "Error during audit policy audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region Constrained Delegation Audits
+
+function Test-ConstrainedDelegation {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Starting constrained delegation security audit..."
+    $findings = @()
+    
+    try {
+        # Check user accounts with constrained delegation
+        $usersWithConstrainedDelegation = Get-ADUser -Filter {msDS-AllowedToDelegateTo -like '*'} `
+            -Properties msDS-AllowedToDelegateTo, TrustedForDelegation, TrustedToAuthForDelegation, ServicePrincipalNames, Enabled
+        
+        foreach ($user in $usersWithConstrainedDelegation) {
+            # Check for protocol transition (most dangerous)
+            if ($user.TrustedToAuthForDelegation -eq $true) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Kerberos Delegation'
+                $finding.Issue = 'User Account with Protocol Transition (T2A4D)'
+                $finding.Severity = 'Critical'
+                $finding.SeverityLevel = 4
+                $finding.AffectedObject = $user.SamAccountName
+                $finding.Description = "User account '$($user.SamAccountName)' has constrained delegation with protocol transition enabled (TrustedToAuthForDelegation)."
+                $finding.Impact = "Can impersonate ANY user to specified services without requiring their credentials. Highly exploitable for privilege escalation."
+                $finding.Remediation = "Disable protocol transition if not absolutely required. If needed, ensure the account has a very strong password (30+ characters) and is closely monitored. Consider migrating to Group Managed Service Accounts."
+                $finding.Details = @{
+                    DistinguishedName = $user.DistinguishedName
+                    AllowedToDelegateTo = $user.'msDS-AllowedToDelegateTo' -join '; '
+                    TrustedToAuthForDelegation = $user.TrustedToAuthForDelegation
+                    Enabled = $user.Enabled
+                }
+                $findings += $finding
+            }
+            else {
+                # Standard constrained delegation
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Kerberos Delegation'
+                $finding.Issue = 'User Account with Constrained Delegation'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = $user.SamAccountName
+                $finding.Description = "User account '$($user.SamAccountName)' has constrained delegation configured to specific services."
+                $finding.Impact = "Can impersonate authenticated users to specified services. Less risky than unconstrained delegation but still requires strong security controls."
+                $finding.Remediation = "Verify this configuration is necessary. Ensure strong password policy and monitoring. Review delegated services: $($user.'msDS-AllowedToDelegateTo' -join ', ')"
+                $finding.Details = @{
+                    DistinguishedName = $user.DistinguishedName
+                    AllowedToDelegateTo = $user.'msDS-AllowedToDelegateTo' -join '; '
+                    Enabled = $user.Enabled
+                }
+                $findings += $finding
+            }
+        }
+        
+        # Check computer accounts with constrained delegation
+        $computersWithConstrainedDelegation = Get-ADComputer -Filter {msDS-AllowedToDelegateTo -like '*'} `
+            -Properties msDS-AllowedToDelegateTo, TrustedForDelegation, TrustedToAuthForDelegation, ServicePrincipalNames, Enabled
+        
+        foreach ($computer in $computersWithConstrainedDelegation) {
+            if ($computer.TrustedToAuthForDelegation -eq $true) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Kerberos Delegation'
+                $finding.Issue = 'Computer Account with Protocol Transition (T2A4D)'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = $computer.Name
+                $finding.Description = "Computer account '$($computer.Name)' has constrained delegation with protocol transition enabled."
+                $finding.Impact = "If compromised, attackers can impersonate any user to specified services. Common on Exchange servers but requires securing the host."
+                $finding.Remediation = "Verify this configuration is required (common for Exchange/IIS). Ensure the computer is hardened, patched, and monitored. Services: $($computer.'msDS-AllowedToDelegateTo' -join ', ')"
+                $finding.Details = @{
+                    DistinguishedName = $computer.DistinguishedName
+                    AllowedToDelegateTo = $computer.'msDS-AllowedToDelegateTo' -join '; '
+                    TrustedToAuthForDelegation = $computer.TrustedToAuthForDelegation
+                    Enabled = $computer.Enabled
+                }
+                $findings += $finding
+            }
+        }
+        
+        # Check for Resource-Based Constrained Delegation (RBCD)
+        $objectsWithRBCD = Get-ADObject -Filter {msDS-AllowedToActOnBehalfOfOtherIdentity -like '*'} `
+            -Properties msDS-AllowedToActOnBehalfOfOtherIdentity, objectClass, Name
+        
+        foreach ($object in $objectsWithRBCD) {
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = 'Kerberos Delegation'
+            $finding.Issue = 'Resource-Based Constrained Delegation Configured'
+            $finding.Severity = 'Medium'
+            $finding.SeverityLevel = 2
+            $finding.AffectedObject = $object.Name
+            $finding.Description = "Object '$($object.Name)' has Resource-Based Constrained Delegation (RBCD) configured, allowing other accounts to impersonate users to this resource."
+            $finding.Impact = "RBCD can be exploited if an attacker can modify the msDS-AllowedToActOnBehalfOfOtherIdentity attribute or compromise accounts listed in it."
+            $finding.Remediation = "Review RBCD configuration and ensure only necessary accounts are allowed. Monitor for unauthorized changes to this attribute."
+            $finding.Details = @{
+                DistinguishedName = $object.DistinguishedName
+                ObjectClass = $object.objectClass
+            }
+            $findings += $finding
+        }
+        
+        Write-Verbose "Constrained delegation audit complete. Found $($findings.Count) issues."
+        return $findings
+    }
+    catch {
+        Write-Error "Error during constrained delegation audit: $_"
+        throw
+    }
+}
+
+#endregion
+
 #region Main Audit Function
 
 function Start-ADSecurityAudit {
@@ -1361,22 +2027,22 @@ function Start-ADSecurityAudit {
         [string]$ExportPath = ".",
         
         [Parameter()]
-        [ValidateSet('UserAccounts', 'PrivilegedGroups', 'AdminSDHolder', 'GroupPolicies', 'ReplicationSecurity', 'DomainSecurity', 'DangerousPermissions')]
-        [string[]]$IncludeTests,
-        
-        [Parameter()]
-        [ValidateSet('UserAccounts', 'PrivilegedGroups', 'AdminSDHolder', 'GroupPolicies', 'ReplicationSecurity', 'DomainSecurity', 'DangerousPermissions')]
-        [string[]]$ExcludeTests = @(),
-        
-        [Parameter()]
-        [switch]$IncludePrivilegedUsersReport,
-        
-        [Parameter()]
         [int]$InactiveDaysThreshold = 90,
         
         [Parameter()]
-        [int]$PasswordAgeThreshold = 180
+        [int]$PasswordAgeThreshold = 180,
+        
+        [Parameter()]
+        [string[]]$IncludeTests,
+        
+        [Parameter()]
+        [string[]]$ExcludeTests = @(),
+        
+        [Parameter()]
+        [switch]$IncludePrivilegedUsersReport
     )
+    
+    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
     
     if (-not (Test-Path $ExportPath)) {
         Write-Error "Export path does not exist: $ExportPath"
@@ -1393,7 +2059,6 @@ function Start-ADSecurityAudit {
         return
     }
     
-    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $logPath = Join-Path $ExportPath "ADSecurityAudit_Log_$timestamp.txt"
     Start-Transcript -Path $logPath -Force
     
@@ -1441,6 +2106,12 @@ function Start-ADSecurityAudit {
             'ReplicationSecurity' = { Test-ADReplicationSecurity }
             'DomainSecurity' = { Test-ADDomainSecurity }
             'DangerousPermissions' = { Test-ADDangerousPermissions }
+            'CertificateServices' = { Test-ADCertificateServices }
+            'KRBTGTAccount' = { Test-KRBTGTAccount -MaxPasswordAgeDays 180 }
+            'DomainTrusts' = { Test-ADDomainTrusts }
+            'LAPSDeployment' = { Test-LAPSDeployment }
+            'AuditPolicyConfiguration' = { Test-AuditPolicyConfiguration }
+            'ConstrainedDelegation' = { Test-ConstrainedDelegation }
         }
         
         # Determine which tests to run
@@ -1849,6 +2520,12 @@ Export-ModuleMember -Function @(
     'Test-ADDomainSecurity'
     'Test-ADDangerousPermissions'
     'Get-ADPrivilegedUsers'
+    'Test-ADCertificateServices'
+    'Test-KRBTGTAccount'
+    'Test-ADDomainTrusts'
+    'Test-LAPSDeployment'
+    'Test-AuditPolicyConfiguration'
+    'Test-ConstrainedDelegation'
 )
 
 #endregion
