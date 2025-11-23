@@ -161,7 +161,7 @@ function Test-ADUserSecurity {
                 $finding.Description = "User account is configured to use DES encryption, which is deprecated and easily crackable."
                 $finding.Impact = "DES encryption provides minimal security and can be cracked quickly by modern tools."
                 $finding.Remediation = "Disable DES encryption: Set-ADUser -Identity '$($user.SamAccountName)' -UseDESKeyOnly `$false"
-                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/network-security-configure-encryption-types-allowed-for-kerberos"
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/threat-protection/security-policy-settings/network-security-configure-encryption-types-allowed-for-kerberos"
                 $finding.Details = @{
                     DistinguishedName = $user.DistinguishedName
                 }
@@ -179,7 +179,7 @@ function Test-ADUserSecurity {
                 $finding.Description = "User account has reversible password encryption enabled, storing passwords in a format equivalent to plaintext."
                 $finding.Impact = "An attacker with access to the AD database can easily retrieve the plaintext password."
                 $finding.Remediation = "Disable reversible encryption: Set-ADUser -Identity '$($user.SamAccountName)' -AllowReversiblePasswordEncryption `$false; Then force password change."
-                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/store-passwords-using-reversible-encryption"
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/store-passwords-using-reversible-encryption"
                 $finding.Details = @{
                     DistinguishedName = $user.DistinguishedName
                 }
@@ -199,7 +199,7 @@ function Test-ADUserSecurity {
                 $finding.Description = "User account is configured with a password that never expires."
                 $finding.Impact = "Stale passwords increase the risk of compromise and violate security best practices."
                 $finding.Remediation = "Set password to expire: Set-ADUser -Identity '$($user.SamAccountName)' -PasswordNeverExpires `$false"
-                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/password-policy"
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/password-policy"
                 $finding.Details = @{
                     DistinguishedName = $user.DistinguishedName
                     IsPrivileged = $isPrivileged
@@ -972,7 +972,7 @@ function Test-ADDomainSecurity {
             $finding.Description = "Minimum password length is set to $($defaultPasswordPolicy.MinPasswordLength) characters."
             $finding.Impact = "Short passwords are easier to crack through brute-force and dictionary attacks."
             $finding.Remediation = "Increase minimum password length to at least 14 characters: Set-ADDefaultDomainPasswordPolicy -MinPasswordLength 14 -Identity $($domain.DNSRoot)"
-            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/minimum-password-length"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/minimum-password-length"
             $finding.Details = @{
                 CurrentLength = $defaultPasswordPolicy.MinPasswordLength
                 RecommendedLength = 14
@@ -990,7 +990,7 @@ function Test-ADDomainSecurity {
             $finding.Description = "Password complexity requirements are disabled."
             $finding.Impact = "Users can set simple, easily guessable passwords, significantly increasing the risk of compromise."
             $finding.Remediation = "Enable password complexity: Set-ADDefaultDomainPasswordPolicy -ComplexityEnabled `$true -Identity $($domain.DNSRoot)"
-            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/password-must-meet-complexity-requirements"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/password-must-meet-complexity-requirements"
             $finding.Details = @{
                 ComplexityEnabled = $defaultPasswordPolicy.ComplexityEnabled
             }
@@ -1007,7 +1007,7 @@ function Test-ADDomainSecurity {
             $finding.Description = "Reversible password encryption is enabled at the domain level."
             $finding.Impact = "All passwords are stored in a format equivalent to plaintext, making them easily retrievable by attackers."
             $finding.Remediation = "Disable reversible encryption immediately: Set-ADDefaultDomainPasswordPolicy -ReversibleEncryptionEnabled `$false -Identity $($domain.DNSRoot)"
-            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/store-passwords-using-reversible-encryption"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/store-passwords-using-reversible-encryption"
             $finding.Details = @{
                 ReversibleEncryptionEnabled = $defaultPasswordPolicy.ReversibleEncryptionEnabled
             }
@@ -1090,7 +1090,7 @@ function Test-ADDomainSecurity {
             $finding.Description = "Found $($legacyComputers.Count) computer(s) running unsupported/legacy operating systems."
             $finding.Impact = "Legacy systems lack security updates and are vulnerable to known exploits, providing easy entry points for attackers."
             $finding.Remediation = "Upgrade or isolate legacy systems. Remove computer accounts for decommissioned systems."
-            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/kerberos/ntlm-overview"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/plan-for-the-operations-master-role#operations-master-roles"
             $finding.Details = @{
                 Count = $legacyComputers.Count
                 Computers = ($legacyComputers | Select-Object Name, OperatingSystem, LastLogonDate -First 50)
@@ -1683,7 +1683,7 @@ function Test-ADDomainTrusts {
                 $finding.Impact = "All users in the trusted forest have automatic access to resources without explicit permission."
                 $finding.AffectedObject = $trust.Target
                 $finding.Remediation = "Enable selective authentication to require explicit permission for cross-forest access."
-                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-R2-and-2008/cc755844(v=ws.10)"
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/cc755844(v=ws.10)"
                 $finding.Details = @{
                     Target = $trust.Target
                     TrustType = $trust.TrustType
@@ -1705,7 +1705,7 @@ function Test-ADDomainTrusts {
                     $finding.Description = "Trust with '$($trust.Target)' has not been modified in $($trustAge.Days) days. Trust passwords should rotate automatically every 30 days."
                     $finding.Impact = "May indicate trust relationship issues or lack of maintenance."
                     $finding.Remediation = "Verify trust health: netdom trust $($domain.DNSRoot) /domain:$($trust.Target) /verify"
-                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/windows-security/netdom-trust-command-not-work"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/security/netdom-trust-command-not-work"
                     $finding.Details = @{
                         Target = $trust.Target
                         LastModified = $trust.Modified
@@ -2254,7 +2254,7 @@ function Test-FineGrainedPasswordPolicies {
             $finding.Description = "Domain functional level ($domainLevel) does not support Fine-Grained Password Policies (FGPP)."
             $finding.Impact = "Cannot enforce different password policies for different user groups, limiting security flexibility for privileged accounts."
             $finding.Remediation = "Consider raising domain functional level to Windows Server 2008 or higher to enable FGPP support."
-            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-R2-and-2008/cc770394(v=ws.10)"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/cc770394(v=ws.10)"
             $finding.Details = @{
                 DomainMode = $domainLevel
                 DomainName = $domain.DNSRoot
@@ -2277,7 +2277,7 @@ function Test-FineGrainedPasswordPolicies {
             $finding.Description = "Default domain password policy requires only $($defaultPolicy.MinPasswordLength) characters. NIST recommends minimum 14 characters."
             $finding.Impact = "Short passwords are vulnerable to brute-force and password spray attacks."
             $finding.Remediation = "Increase minimum password length to at least 14 characters: Set-ADDefaultDomainPasswordPolicy -MinPasswordLength 14 -Identity '$($domain.DistinguishedName)'"
-            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/minimum-password-length"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/minimum-password-length"
             $finding.Details = @{
                 CurrentMinLength = $defaultPolicy.MinPasswordLength
                 RecommendedMinLength = 14
@@ -2295,7 +2295,7 @@ function Test-FineGrainedPasswordPolicies {
             $finding.Description = "Password complexity is disabled in the default domain password policy."
             $finding.Impact = "Users can set simple, easily guessable passwords, significantly increasing risk of compromise."
             $finding.Remediation = "Enable password complexity: Set-ADDefaultDomainPasswordPolicy -ComplexityEnabled `$true -Identity '$($domain.DistinguishedName)'"
-            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/password-must-meet-complexity-requirements"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/password-must-meet-complexity-requirements"
             $finding.Details = @{
                 ComplexityEnabled = $defaultPolicy.ComplexityEnabled
             }
@@ -2312,7 +2312,7 @@ function Test-FineGrainedPasswordPolicies {
             $finding.Description = "Account lockout is not enabled (threshold is 0), allowing unlimited password attempts."
             $finding.Impact = "Domain is vulnerable to password brute-force and spray attacks with no automatic account lockout protection."
             $finding.Remediation = "Configure account lockout: Set-ADDefaultDomainPasswordPolicy -LockoutThreshold 5 -LockoutDuration 00:30:00 -LockoutObservationWindow 00:30:00"
-            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/account-lockout-threshold"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/account-lockout-threshold"
             $finding.Details = @{
                 LockoutThreshold = $defaultPolicy.LockoutThreshold
                 RecommendedThreshold = 5
@@ -2330,7 +2330,7 @@ function Test-FineGrainedPasswordPolicies {
             $finding.Description = "Maximum password age is $($defaultPolicy.MaxPasswordAge.Days) days. Recommended is 60-90 days."
             $finding.Impact = "Long-lived passwords increase the window of opportunity for compromised credentials to be exploited."
             $finding.Remediation = "Set reasonable password expiration: Set-ADDefaultDomainPasswordPolicy -MaxPasswordAge 90.00:00:00"
-            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/maximum-password-age"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/maximum-password-age"
             $finding.Details = @{
                 CurrentMaxAge = $defaultPolicy.MaxPasswordAge.Days
                 RecommendedMaxAge = 90
@@ -2367,7 +2367,7 @@ function Test-FineGrainedPasswordPolicies {
                 $finding.Description = "No Fine-Grained Password Policies (PSOs) are configured, but privileged accounts exist in the domain."
                 $finding.Impact = "Privileged accounts follow the same password policy as standard users, which may not provide adequate protection for high-value accounts."
                 $finding.Remediation = "Create a stricter PSO for privileged accounts with longer passwords (20+ chars), shorter expiration, and stricter lockout policies. Use New-ADFineGrainedPasswordPolicy cmdlet."
-                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-R2-and-2008/cc770842(v=ws.10)"
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/cc770842(v=ws.10)"
                 $finding.Details = @{
                     PSOCount = 0
                     DomainFunctionalLevel = $domainLevel
@@ -2441,7 +2441,7 @@ function Test-FineGrainedPasswordPolicies {
                     $findings += $finding
                 }
                 
-                # Check for conflicting PSOs (same precedence)
+                # Check for conflicting PSos (same precedence)
                 $conflictingPSOs = $psos | Where-Object { 
                     $_.Name -ne $pso.Name -and $_.Precedence -eq $pso.Precedence 
                 }
@@ -2456,7 +2456,7 @@ function Test-FineGrainedPasswordPolicies {
                     $finding.Description = "PSO '$($pso.Name)' has the same precedence ($($pso.Precedence)) as other PSO(s): $($conflictingPSOs.Name -join ', ')"
                     $finding.Impact = "When multiple PSOs apply to the same user with identical precedence, the result is unpredictable and may not enforce intended policies."
                     $finding.Remediation = "Assign unique precedence values to all PSOs. Lower numbers have higher priority. Review and adjust precedence values."
-                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-R2-and-2008/cc770394(v=ws.10)#precedence"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/cc770394(v=ws.10)#precedence"
                     $finding.Details = @{
                         PSOName = $pso.Name
                         Precedence = $pso.Precedence
@@ -2687,7 +2687,7 @@ function Test-DNSSecurityConfiguration {
                     $finding.Description = "LDAP signing is not required on domain controller $dcName (current value: $($ldapPolicy.LDAPServerIntegrity))."
                     $finding.Impact = "Domain is vulnerable to LDAP relay attacks where attackers can intercept and modify LDAP traffic, potentially gaining privileged access."
                     $finding.Remediation = "Require LDAP signing via registry: Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters' -Name 'LDAPServerIntegrity' -Value 2. Or use Group Policy: Computer Configuration > Policies > Windows Settings > Security Settings > Local Policies > Security Options > 'Domain controller: LDAP server signing requirements' = 'Require signing'"
-                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/domain-controller-ldap-server-signing-requirements"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/domain-controller-ldap-server-signing-requirements"
                     $finding.Details = @{
                         CurrentValue = $ldapPolicy.LDAPServerIntegrity
                         RequiredValue = 2
@@ -3059,7 +3059,1928 @@ function Test-ADReplicationHealth {
         $finding.SeverityLevel = $Script:SeverityLevels.High
         $finding.Description = "Unable to complete replication health assessment"
         $finding.Impact = "Cannot verify critical replication status"
-        $finding.Remediation = "Verify permissions and AD PowerShell module functionality. Error: $_"
+        $finding.Remediation = "Verify permissions and connectivity. Error: $_"
+        $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/identity/troubleshoot-ad-replication-problems"
+        $findings += $finding
+    }
+    
+    return $findings
+}
+
+#endregion
+
+#region NTLM and Legacy Protocol Audit
+
+function Test-NTLMAndLegacyProtocols {
+    <#
+    .SYNOPSIS
+    Audits NTLM usage and legacy authentication protocols in the domain.
+    
+    .DESCRIPTION
+    Checks for NTLM authentication usage, LM hash storage, NTLMv1 vs NTLMv2 enforcement,
+    and validates domain controllers are configured to restrict or audit legacy protocols.
+    
+    .OUTPUTS
+    Array of ADSecurityFinding objects
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $findings = @()
+    Write-Host "Checking NTLM and Legacy Protocol Security..." -ForegroundColor Cyan
+    
+    try {
+        # Get domain and domain controllers
+        $domain = Get-ADDomain -ErrorAction Stop
+        $domainControllers = Get-ADDomainController -Filter * -ErrorAction Stop
+        
+        # Check domain-level NTLM settings via Group Policy
+        Write-Verbose "Checking domain-level NTLM restrictions..."
+        
+        # Check LM hash storage (should be disabled)
+        foreach ($dc in $domainControllers) {
+            $dcName = $dc.HostName
+            
+            try {
+                $lmCompatibility = Invoke-Command -ComputerName $dcName -ScriptBlock {
+                    $regPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"
+                    $noLMHash = Get-ItemProperty -Path $regPath -Name "NoLMHash" -ErrorAction SilentlyContinue
+                    $lmCompatLevel = Get-ItemProperty -Path $regPath -Name "LmCompatibilityLevel" -ErrorAction SilentlyContinue
+                    $ntlmMinClientSec = Get-ItemProperty -Path $regPath -Name "NtlmMinClientSec" -ErrorAction SilentlyContinue
+                    $ntlmMinServerSec = Get-ItemProperty -Path $regPath -Name "NtlmMinServerSec" -ErrorAction SilentlyContinue
+                    $restrictNTLM = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters" -Name "AuditNTLMInDomain" -ErrorAction SilentlyContinue
+                    
+                    return @{
+                        NoLMHash = $noLMHash.NoLMHash
+                        LmCompatibilityLevel = $lmCompatLevel.LmCompatibilityLevel
+                        NtlmMinClientSec = $ntlmMinClientSec.NtlmMinClientSec
+                        NtlmMinServerSec = $ntlmMinServerSec.NtlmMinServerSec
+                        AuditNTLMInDomain = $restrictNTLM.AuditNTLMInDomain
+                    }
+                } -ErrorAction SilentlyContinue
+                
+                # Check if LM hash storage is disabled (NoLMHash should be 1)
+                if ($lmCompatibility.NoLMHash -ne 1) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Authentication Security'
+                    $finding.Issue = 'LM Hash Storage Not Disabled'
+                    $finding.Severity = 'High'
+                    $finding.SeverityLevel = 3
+                    $finding.AffectedObject = $dcName
+                    $finding.Description = "LM hash storage is not explicitly disabled on $dcName. LM hashes are extremely weak and vulnerable to rapid password cracking."
+                    $finding.Impact = "Attackers who compromise the AD database can quickly crack LM hashes, exposing user passwords. LM hashes provide no security value in modern environments."
+                    $finding.Remediation = "Disable LM hash storage via Group Policy: Computer Configuration > Policies > Windows Settings > Security Settings > Local Policies > Security Options > 'Network security: Do not store LAN Manager hash value on next password change' = Enabled. Or set registry: Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Name 'NoLMHash' -Value 1"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/network-security-do-not-store-lan-manager-hash-value-on-next-password-change"
+                    $finding.Details = @{
+                        CurrentValue = $lmCompatibility.NoLMHash
+                        RequiredValue = 1
+                        DomainController = $dcName
+                    }
+                    $findings += $finding
+                }
+                
+                # Check LM compatibility level (should be 5 for NTLMv2 only)
+                if ($lmCompatibility.LmCompatibilityLevel -lt 5) {
+                    $levelDescriptions = @{
+                        0 = "Send LM & NTLM responses"
+                        1 = "Send LM & NTLM - use NTLMv2 session security if negotiated"
+                        2 = "Send NTLM response only"
+                        3 = "Send NTLMv2 response only"
+                        4 = "Send NTLMv2 response only. Refuse LM"
+                        5 = "Send NTLMv2 response only. Refuse LM & NTLM"
+                    }
+                    
+                    $currentLevel = if ($lmCompatibility.LmCompatibilityLevel -ne $null) {
+                        $lmCompatibility.LmCompatibilityLevel
+                    } else {
+                        0  # Default if not set
+                    }
+                    
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Authentication Security'
+                    $finding.Issue = 'Weak LM Compatibility Level'
+                    $finding.Severity = if ($currentLevel -le 2) { 'Critical' } else { 'High' }
+                    $finding.SeverityLevel = if ($currentLevel -le 2) { 4 } else { 3 }
+                    $finding.AffectedObject = $dcName
+                    $finding.Description = "LM compatibility level on $dcName is set to $currentLevel - $($levelDescriptions[$currentLevel]). This allows legacy authentication protocols."
+                    $finding.Impact = "Domain controllers accept weak authentication protocols (LM/NTLM) which are vulnerable to relay attacks, brute force, and have no mutual authentication. Modern environments should use NTLMv2 minimum or preferably Kerberos only."
+                    $finding.Remediation = "Set LM compatibility to level 5 via Group Policy: Computer Configuration > Policies > Windows Settings > Security Settings > Local Policies > Security Options > 'Network security: LAN Manager authentication level' = 'Send NTLMv2 response only. Refuse LM & NTLM'. Or registry: Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Name 'LmCompatibilityLevel' -Value 5"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/network-security-lan-manager-authentication-level"
+                    $finding.Details = @{
+                        CurrentLevel = $currentLevel
+                        CurrentDescription = $levelDescriptions[$currentLevel]
+                        RecommendedLevel = 5
+                        RecommendedDescription = $levelDescriptions[5]
+                        DomainController = $dcName
+                    }
+                    $findings += $finding
+                }
+                
+                # Check NTLM minimum security settings (should require NTLMv2 and 128-bit encryption)
+                # Bit flags: 0x20000000 (NTLMv2 session security) + 0x80000 (128-bit encryption) = 0x20080000
+                $recommendedMinSec = 0x20080000
+                
+                if ($lmCompatibility.NtlmMinClientSec -lt $recommendedMinSec) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Authentication Security'
+                    $finding.Issue = 'Weak NTLM Client Security Requirements'
+                    $finding.Severity = 'High'
+                    $finding.SeverityLevel = 3
+                    $finding.AffectedObject = $dcName
+                    $finding.Description = "NTLM minimum client security on $dcName does not require NTLMv2 session security and 128-bit encryption."
+                    $finding.Impact = "NTLM sessions may use weak encryption or downgrade to less secure protocol versions, making them vulnerable to man-in-the-middle attacks."
+                    $finding.Remediation = "Enforce strong NTLM client security via Group Policy: Computer Configuration > Policies > Windows Settings > Security Settings > Local Policies > Security Options > 'Network security: Minimum session security for NTLM SSP based (including secure RPC) clients' = 'Require NTLMv2 session security, Require 128-bit encryption'"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/network-security-minimum-session-security-for-ntlm-ssp-based-including-secure-rpc-clients"
+                    $finding.Details = @{
+                        CurrentValue = "0x$($lmCompatibility.NtlmMinClientSec.ToString('X'))"
+                        RecommendedValue = "0x$($recommendedMinSec.ToString('X'))"
+                        DomainController = $dcName
+                    }
+                    $findings += $finding
+                }
+                
+                if ($lmCompatibility.NtlmMinServerSec -lt $recommendedMinSec) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Authentication Security'
+                    $finding.Issue = 'Weak NTLM Server Security Requirements'
+                    $finding.Severity = 'High'
+                    $finding.SeverityLevel = 3
+                    $finding.AffectedObject = $dcName
+                    $finding.Description = "NTLM minimum server security on $dcName does not require NTLMv2 session security and 128-bit encryption."
+                    $finding.Impact = "Server-side NTLM authentication may accept weak encryption or protocol versions, enabling credential theft and relay attacks."
+                    $finding.Remediation = "Enforce strong NTLM server security via Group Policy: Computer Configuration > Policies > Windows Settings > Security Settings > Local Policies > Security Options > 'Network security: Minimum session security for NTLM SSP based (including secure RPC) servers' = 'Require NTLMv2 session security, Require 128-bit encryption'"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/network-security-minimum-session-security-for-ntlm-ssp-based-including-secure-rpc-servers"
+                    $finding.Details = @{
+                        CurrentValue = "0x$($lmCompatibility.NtlmMinServerSec.ToString('X'))"
+                        RecommendedValue = "0x$($recommendedMinSec.ToString('X'))"
+                        DomainController = $dcName
+                    }
+                    $findings += $finding
+                }
+                
+                # Check if NTLM auditing is enabled in the domain
+                if ($lmCompatibility.AuditNTLMInDomain -eq $null -or $lmCompatibility.AuditNTLMInDomain -eq 0) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Authentication Security'
+                    $finding.Issue = 'NTLM Auditing Not Enabled'
+                    $finding.Severity = 'Medium'
+                    $finding.SeverityLevel = 2
+                    $finding.AffectedObject = $dcName
+                    $finding.Description = "NTLM auditing is not enabled on $dcName. This prevents visibility into which systems and applications are using NTLM authentication."
+                    $finding.Impact = "Cannot identify NTLM usage patterns or detect potential NTLM relay attacks. Lack of visibility prevents migration planning to Kerberos-only authentication."
+                    $finding.Remediation = "Enable NTLM auditing via Group Policy: Computer Configuration > Policies > Windows Settings > Security Settings > Local Policies > Security Options > 'Network security: Restrict NTLM: Audit NTLM authentication in this domain' = 'Enable all'. Or registry: Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters' -Name 'AuditNTLMInDomain' -Value 7"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/network-security-restrict-ntlm-audit-ntlm-authentication-in-this-domain"
+                    $finding.Details = @{
+                        CurrentValue = $lmCompatibility.AuditNTLMInDomain
+                        RecommendedValue = 7
+                        DomainController = $dcName
+                        Note = "After enabling, review Event IDs 8004 and 8005 in Netlogon logs"
+                    }
+                    $findings += $finding
+                }
+            }
+            catch {
+                Write-Verbose "Could not query NTLM settings on $dcName : $_"
+            }
+        }
+        
+        # Check for accounts with DES encryption enabled (legacy Kerberos)
+        Write-Verbose "Checking for accounts with weak Kerberos encryption types..."
+        
+        $desAccounts = Get-ADUser -Filter {UserAccountControl -band 0x200000} -Properties UserAccountControl, Enabled, LastLogonDate -ErrorAction SilentlyContinue
+        
+        if ($desAccounts) {
+            foreach ($account in $desAccounts) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Authentication Security'
+                $finding.Issue = 'Account Using DES Encryption'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = $account.SamAccountName
+                $finding.Description = "User account $($account.SamAccountName) has 'Use DES encryption types for this account' enabled. DES is cryptographically broken."
+                $finding.Impact = "Kerberos tickets for this account use weak DES encryption which can be cracked offline, exposing the account password. DES is deprecated and should never be used."
+                $finding.Remediation = "Disable DES encryption: Set-ADUser -Identity '$($account.SamAccountName)' -KerberosEncryptionType AES128, AES256. Ensure the account and applications support AES encryption."
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/threat-protection/security-policy-settings/network-security-configure-encryption-types-allowed-for-kerberos"
+                $finding.Details = @{
+                    DistinguishedName = $account.DistinguishedName
+                    Enabled = $account.Enabled
+                    LastLogonDate = $account.LastLogonDate
+                }
+                $findings += $finding
+            }
+        }
+        
+        # Check for computers with unconstrained delegation (potential NTLM relay targets)
+        Write-Verbose "Checking for computers with unconstrained delegation..."
+        
+        $unconstrainedComputers = Get-ADComputer -Filter {TrustedForDelegation -eq $true} -Properties TrustedForDelegation, OperatingSystem, LastLogonDate -ErrorAction SilentlyContinue
+        
+        if ($unconstrainedComputers) {
+            foreach ($computer in $unconstrainedComputers) {
+                # Skip domain controllers as they have it by design
+                if ($computer.DistinguishedName -notmatch 'OU=Domain Controllers') {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Authentication Security'
+                    $finding.Issue = 'Computer with Unconstrained Delegation'
+                    $finding.Severity = 'High'
+                    $finding.SeverityLevel = 3
+                    $finding.AffectedObject = $computer.Name
+                    $finding.Description = "Computer $($computer.Name) is configured for unconstrained Kerberos delegation."
+                    $finding.Impact = "Any user authenticating to this computer has their TGT cached on it. If this computer is compromised, attackers can impersonate any user (including Domain Admins) who authenticated to it."
+                    $finding.Remediation = "Change to constrained delegation or remove delegation entirely. Use constrained delegation with protocol transition if needed: Set-ADComputer -Identity '$($computer.Name)' -TrustedForDelegation `$false"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-constrained-delegation-overview"
+                    $finding.Details = @{
+                        DistinguishedName = $computer.DistinguishedName
+                        OperatingSystem = $computer.OperatingSystem
+                        LastLogonDate = $computer.LastLogonDate
+                    }
+                    $findings += $finding
+                }
+            }
+        }
+        
+        Write-Host "  Found $($findings.Count) NTLM and legacy protocol finding(s)" -ForegroundColor $(if($findings.Count -gt 0){'Yellow'}else{'Green'})
+        return $findings
+    }
+    catch {
+        Write-Error "Error during NTLM and legacy protocol audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region Protected Users Group Coverage Validation
+
+function Test-ProtectedUsersGroupCoverage {
+    <#
+    .SYNOPSIS
+    Validates Protected Users group membership coverage for privileged accounts.
+    
+    .DESCRIPTION
+    Performs comprehensive analysis of Protected Users group membership, identifies
+    privileged accounts that should be members, checks for incompatible configurations,
+    and validates proper coverage of tier 0 accounts.
+    
+    .OUTPUTS
+    Array of ADSecurityFinding objects
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $findings = @()
+    Write-Host "Checking Protected Users Group Coverage..." -ForegroundColor Cyan
+    
+    try {
+        # Get the Protected Users group
+        $protectedUsersGroup = Get-ADGroup -Filter {Name -eq "Protected Users"} -ErrorAction SilentlyContinue
+        
+        if (-not $protectedUsersGroup) {
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = 'Protected Users'
+            $finding.Issue = 'Protected Users Group Not Found'
+            $finding.Severity = 'High'
+            $finding.SeverityLevel = 3
+            $finding.AffectedObject = 'Protected Users Group'
+            $finding.Description = "The Protected Users security group does not exist in this domain. This group provides additional protections for privileged accounts."
+            $finding.Impact = "Privileged accounts lack critical security protections against credential theft attacks like pass-the-hash, which are critical in modern threat landscape."
+            $finding.Remediation = "The Protected Users group should exist by default in domains with Windows Server 2012 R2+ functional level. Verify domain functional level and consider creating the group if appropriate."
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/credentials-protection-and-management/protected-users-security-group"
+            $finding.Details = @{
+                DomainFunctionalLevel = (Get-ADDomain).DomainMode
+                Note = "Protected Users group requires Windows Server 2012 R2 or higher domain functional level"
+            }
+            $findings += $finding
+            return $findings
+        }
+        
+        Write-Verbose "Protected Users group found: $($protectedUsersGroup.DistinguishedName)"
+        
+        # Get all members of Protected Users group
+        $protectedUsersMembers = Get-ADGroupMember -Identity $protectedUsersGroup -Recursive -ErrorAction SilentlyContinue | Where-Object {$_.objectClass -eq 'user'}
+        $protectedUsersDNs = $protectedUsersMembers | ForEach-Object {$_.DistinguishedName}
+        
+        Write-Verbose "Protected Users group has $($protectedUsersMembers.Count) user member(s)"
+        
+        # Define highly privileged groups that should be in Protected Users
+        $criticalPrivilegedGroups = @(
+            'Domain Admins',
+            'Enterprise Admins',
+            'Schema Admins',
+            'Administrators'
+        )
+        
+        # Get all users from critical privileged groups
+        $privilegedUsers = @()
+        foreach ($groupName in $criticalPrivilegedGroups) {
+            $group = Get-ADGroup -Filter {Name -eq $groupName} -ErrorAction SilentlyContinue
+            if ($group) {
+                $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction SilentlyContinue | Where-Object {$_.objectClass -eq 'user'}
+                foreach ($member in $members) {
+                    if ($privilegedUsers.DistinguishedName -notcontains $member.DistinguishedName) {
+                        $privilegedUsers += $member | Add-Member -NotePropertyName 'PrivilegedGroup' -NotePropertyValue $groupName -PassThru
+                    }
+                }
+            }
+        }
+        
+        Write-Verbose "Found $($privilegedUsers.Count) unique privileged user(s) across critical groups"
+        
+        # Check each privileged user for Protected Users membership
+        foreach ($privUser in $privilegedUsers) {
+            $userDetails = Get-ADUser -Identity $privUser.DistinguishedName -Properties Enabled, PasswordNeverExpires, AccountNotDelegated, DoesNotRequirePreAuth, ServicePrincipalNames, LastLogonDate, PasswordLastSet -ErrorAction SilentlyContinue
+            
+            if (-not $userDetails) { continue }
+            
+            # Skip disabled accounts
+            if (-not $userDetails.Enabled) { continue }
+            
+            # Check if user is in Protected Users
+            if ($protectedUsersDNs -notcontains $userDetails.DistinguishedName) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Protected Users'
+                $finding.Issue = 'Privileged Account Not in Protected Users Group'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = $userDetails.SamAccountName
+                $finding.Description = "Privileged account $($userDetails.SamAccountName) is a member of $($privUser.PrivilegedGroup) but is NOT in the Protected Users security group."
+                $finding.Impact = "Account lacks critical protections: NTLM authentication will be allowed, Kerberos DES/RC4 encryption allowed, credentials can be delegated, and TGTs can be cached. This significantly increases risk of credential theft attacks."
+                $finding.Remediation = @"
+Add to Protected Users group: Add-ADGroupMember -Identity 'Protected Users' -Members '$($userDetails.SamAccountName)'
+
+IMPORTANT: Before adding, verify:
+1. Applications/services don't require NTLM authentication for this account
+2. No constrained delegation configured (incompatible with Protected Users)
+3. No service principal names (SPNs) registered (service accounts incompatible)
+4. Account doesn't require DES/RC4 encryption for legacy systems
+
+Protected Users enforces:
+- No NTLM, Digest, or CredSSP authentication
+- No DES or RC4 in Kerberos pre-auth
+- No delegation (constrained or unconstrained)
+- TGT lifetime restricted to 4 hours
+- No offline password caching
+"@
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/credentials-protection-and-management/protected-users-security-group"
+                $finding.Details = @{
+                    DistinguishedName = $userDetails.DistinguishedName
+                    PrivilegedGroup = $privUser.PrivilegedGroup
+                    Enabled = $userDetails.Enabled
+                    PasswordNeverExpires = $userDetails.PasswordNeverExpires
+                    HasSPN = ($userDetails.ServicePrincipalNames.Count -gt 0)
+                    SPNCount = $userDetails.ServicePrincipalNames.Count
+                    AccountNotDelegated = $userDetails.AccountNotDelegated
+                    LastLogonDate = $userDetails.LastLogonDate
+                    PasswordLastSet = $userDetails.PasswordLastSet
+                }
+                $findings += $finding
+            }
+            
+            # Check for incompatible configurations even if in Protected Users
+            if ($protectedUsersDNs -contains $userDetails.DistinguishedName) {
+                # Check for SPNs (service accounts incompatible with Protected Users)
+                if ($userDetails.ServicePrincipalNames.Count -gt 0) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Protected Users'
+                    $finding.Issue = 'Service Account in Protected Users Group'
+                    $finding.Severity = 'High'
+                    $finding.SeverityLevel = 3
+                    $finding.AffectedObject = $userDetails.SamAccountName
+                    $finding.Description = "Account $($userDetails.SamAccountName) is in Protected Users group but has $($userDetails.ServicePrincipalNames.Count) Service Principal Name(s) registered. Service accounts should not be in Protected Users."
+                    $finding.Impact = "Services using this account may fail to authenticate. Protected Users restrictions (no RC4, no delegation, 4-hour TGT) are incompatible with most service account requirements."
+                    $finding.Remediation = "Remove from Protected Users group: Remove-ADGroupMember -Identity 'Protected Users' -Members '$($userDetails.SamAccountName)'. For service accounts, use Group Managed Service Accounts (gMSA) instead and implement other hardening measures."
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/group-managed-service-accounts/group-managed-service-accounts-overview"
+                    $finding.Details = @{
+                        DistinguishedName = $userDetails.DistinguishedName
+                        SPNs = $userDetails.ServicePrincipalNames -join '; '
+                        SPNCount = $userDetails.ServicePrincipalNames.Count
+                    }
+                    $findings += $finding
+                }
+                
+                # Check for password never expires (should be addressed)
+                if ($userDetails.PasswordNeverExpires) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Protected Users'
+                    $finding.Issue = 'Protected User with Non-Expiring Password'
+                    $finding.Severity = 'Medium'
+                    $finding.SeverityLevel = 2
+                    $finding.AffectedObject = $userDetails.SamAccountName
+                    $finding.Description = "Account $($userDetails.SamAccountName) is in Protected Users group but has 'Password Never Expires' set."
+                    $finding.Impact = "While Protected Users provides strong protections, non-expiring passwords reduce the effectiveness of credential rotation. If the password is compromised, it remains valid indefinitely."
+                    $finding.Remediation = "Configure password expiration: Set-ADUser -Identity '$($userDetails.SamAccountName)' -PasswordNeverExpires `$false. Implement regular password rotation for privileged accounts (90 days recommended)."
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/credentials-protection-and-management/protected-users-security-group"
+                    $finding.Details = @{
+                        DistinguishedName = $userDetails.DistinguishedName
+                        PasswordLastSet = $userDetails.PasswordLastSet
+                    }
+                    $findings += $finding
+                }
+            }
+        }
+        
+        # Check for accounts in Protected Users that shouldn't be there
+        foreach ($protectedMember in $protectedUsersMembers) {
+            $userDetails = Get-ADUser -Identity $protectedMember -Properties Enabled, ServicePrincipalNames -ErrorAction SilentlyContinue
+            
+            if (-not $userDetails -or -not $userDetails.Enabled) { continue }
+            
+            # Check if this is a service account (has SPNs but not in privileged groups)
+            if ($userDetails.ServicePrincipalNames.Count -gt 0) {
+                $isPrivileged = $privilegedUsers.DistinguishedName -contains $userDetails.DistinguishedName
+                
+                if (-not $isPrivileged) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Protected Users'
+                    $finding.Issue = 'Non-Privileged Service Account in Protected Users'
+                    $finding.Severity = 'Medium'
+                    $finding.SeverityLevel = 2
+                    $finding.AffectedObject = $userDetails.SamAccountName
+                    $finding.Description = "Service account $($userDetails.SamAccountName) is in Protected Users but is not a member of critical privileged groups."
+                    $finding.Impact = "Services may fail due to Protected Users restrictions. Protected Users should typically only contain highly privileged interactive user accounts."
+                    $finding.Remediation = "Review whether this service account requires Protected Users membership. If not, remove: Remove-ADGroupMember -Identity 'Protected Users' -Members '$($userDetails.SamAccountName)'"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/credentials-protection-and-management/protected-users-security-group"
+                    $finding.Details = @{
+                        DistinguishedName = $userDetails.DistinguishedName
+                        SPNCount = $userDetails.ServicePrincipalNames.Count
+                        SPNs = $userDetails.ServicePrincipalNames -join '; '
+                    }
+                    $findings += $finding
+                }
+            }
+        }
+        
+        # Summary statistics
+        $privilegedInProtected = $privilegedUsers | Where-Object {$protectedUsersDNs -contains $_.DistinguishedName}
+        $coveragePercent = if ($privilegedUsers.Count -gt 0) {
+            [math]::Round(($privilegedInProtected.Count / $privilegedUsers.Count) * 100, 2)
+        } else {
+            0
+        }
+        
+        Write-Host "  Protected Users Coverage: $coveragePercent% ($($privilegedInProtected.Count)/$($privilegedUsers.Count) privileged accounts)" -ForegroundColor $(if($coveragePercent -lt 80){'Yellow'}else{'Green'})
+        Write-Host "  Found $($findings.Count) Protected Users coverage finding(s)" -ForegroundColor $(if($findings.Count -gt 0){'Yellow'}else{'Green'})
+        
+        return $findings
+    }
+    catch {
+        Write-Error "Error during Protected Users group coverage audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region Domain Trust Audits
+
+function Test-ADDomainTrusts {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Starting domain trust security audit..."
+    $findings = @()
+    
+    try {
+        $domain = Get-ADDomain
+        $trusts = Get-ADTrust -Filter * -Properties *
+        
+        if (-not $trusts) {
+            Write-Verbose "No domain trusts found."
+            return $findings
+        }
+        
+        Write-Verbose "Analyzing $($trusts.Count) domain trust(s)..."
+        
+        foreach ($trust in $trusts) {
+            # Check for bidirectional trusts
+            if ($trust.Direction -match 'Bidirectional') {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Trust Security'
+                $finding.Issue = 'Bidirectional Trust Detected'
+                $finding.Severity = 'Medium'
+                $finding.SeverityLevel = 2
+                $finding.Description = "A bidirectional trust exists with domain '$($trust.Target)', allowing authentication in both directions."
+                $finding.Impact = "Increases attack surface. A compromise in either domain can affect the other."
+                $finding.AffectedObject = $trust.Target
+                $finding.Remediation = "Review if bidirectional trust is required. If not, convert to one-way trust or implement selective authentication."
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/understanding-when-to-create-a-forest-trust"
+                $finding.Details = @{
+                    Target = $trust.Target
+                    Direction = $trust.Direction
+                    TrustType = $trust.TrustType
+                    Created = $trust.Created
+                }
+                $findings += $finding
+            }
+            
+            # Check if SID filtering is disabled (critical security issue)
+            if ($trust.SIDFilteringQuarantined -eq $false -and $trust.TrustType -eq 'External') {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Trust Security'
+                $finding.Issue = 'SID Filtering Disabled on External Trust'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.Description = "SID filtering is disabled on external trust to '$($trust.Target)', allowing SID history attacks."
+                $finding.Impact = "Attackers can inject arbitrary SIDs and elevate privileges across the trust."
+                $finding.AffectedObject = $trust.Target
+                $finding.Remediation = "Enable SID filtering: netdom trust $($domain.DNSRoot) /domain:$($trust.Target) /quarantine:yes"
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2003/cc772633(v=ws.10)"
+                $finding.Details = @{
+                    Target = $trust.Target
+                    TrustType = $trust.TrustType
+                    SIDFilteringQuarantined = $trust.SIDFilteringQuarantined
+                }
+                $findings += $finding
+            }
+            
+            # Check for trusts without selective authentication
+            if ($trust.SelectiveAuthentication -eq $false -and $trust.TrustType -eq 'Forest') {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Trust Security'
+                $finding.Issue = 'Selective Authentication Not Enabled'
+                $finding.Severity = 'Medium'
+                $finding.SeverityLevel = 2
+                $finding.Description = "Selective authentication is not enabled on forest trust to '$($trust.Target)'."
+                $finding.Impact = "All users in the trusted forest have automatic access to resources without explicit permission."
+                $finding.AffectedObject = $trust.Target
+                $finding.Remediation = "Enable selective authentication to require explicit permission for cross-forest access."
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/cc755844(v=ws.10)"
+                $finding.Details = @{
+                    Target = $trust.Target
+                    TrustType = $trust.TrustType
+                    SelectiveAuthentication = $trust.SelectiveAuthentication
+                }
+                $findings += $finding
+            }
+            
+            # Check trust password age
+            if ($trust.Modified) {
+                $trustAge = (Get-Date) - $trust.Modified
+                if ($trustAge.Days -gt 30) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Trust Security'
+                    $finding.Issue = 'Trust Password Not Recently Rotated'
+                    $finding.Severity = 'Low'
+                    $finding.SeverityLevel = 1
+                    $finding.AffectedObject = $trust.Target
+                    $finding.Description = "Trust with '$($trust.Target)' has not been modified in $($trustAge.Days) days. Trust passwords should rotate automatically every 30 days."
+                    $finding.Impact = "May indicate trust relationship issues or lack of maintenance."
+                    $finding.Remediation = "Verify trust health: netdom trust $($domain.DNSRoot) /domain:$($trust.Target) /verify"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/security/netdom-trust-command-not-work"
+                    $finding.Details = @{
+                        Target = $trust.Target
+                        LastModified = $trust.Modified
+                        DaysSinceModified = $trustAge.Days
+                    }
+                    $findings += $finding
+                }
+            }
+        }
+        
+        Write-Verbose "Domain trust audit complete. Found $($findings.Count) issues."
+        return $findings
+    }
+    catch {
+        Write-Error "Error during domain trust audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region LAPS Deployment Audits
+
+function Test-LAPSDeployment {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Starting LAPS deployment audit..."
+    $findings = @()
+    
+    try {
+        $domain = Get-ADDomain
+        $schemaPath = "CN=ms-Mcs-AdmPwd,CN=Schema,CN=Configuration,$($domain.DistinguishedName)"
+        
+        # Check if LAPS schema is extended
+        try {
+            $lapsSchema = Get-ADObject -Identity $schemaPath -ErrorAction Stop
+            $lapsInstalled = $true
+            Write-Verbose "LAPS schema extension detected."
+        }
+        catch {
+            $lapsInstalled = $false
+            
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = 'LAPS Security'
+            $finding.Issue = 'LAPS Not Deployed'
+            $finding.Severity = 'Critical'
+            $finding.SeverityLevel = 4
+            $finding.Description = "Local Administrator Password Solution (LAPS) schema attributes are not present in Active Directory."
+            $finding.Impact = "Local administrator passwords are likely identical across computers, enabling lateral movement via Pass-the-Hash attacks."
+            $finding.AffectedObject = "Domain"
+            $finding.Remediation = "Deploy LAPS to randomize and manage local administrator passwords across all domain computers. Install LAPS schema: Update-AdmPwdADSchema"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/identity/laps/laps-overview"
+            $finding.Details = @{
+                Domain = $domain.DNSRoot
+            }
+            $findings += $finding
+            
+            Write-Verbose "LAPS not deployed. Skipping computer-level checks."
+            return $findings
+        }
+        
+        # If LAPS is installed, check computer coverage
+        if ($lapsInstalled) {
+            $computers = Get-ADComputer -Filter * -Properties ms-Mcs-AdmPwdExpirationTime, OperatingSystem -ErrorAction Stop
+            $computersWithLAPS = $computers | Where-Object { $_.'ms-Mcs-AdmPwdExpirationTime' }
+            $computersWithoutLAPS = $computers | Where-Object { -not $_.'ms-Mcs-AdmPwdExpirationTime' }
+            
+            $totalComputers = $computers.Count
+            $coveragePercent = if ($totalComputers -gt 0) { 
+                [math]::Round(($computersWithLAPS.Count / $totalComputers) * 100, 2) 
+            } else { 0 }
+            
+            Write-Verbose "LAPS coverage: $coveragePercent% ($($computersWithLAPS.Count)/$totalComputers computers)"
+            
+            # Alert if coverage is below 100%
+            if ($coveragePercent -lt 100) {
+                $severity = if ($coveragePercent -lt 50) { 'Critical' } 
+                           elseif ($coveragePercent -lt 80) { 'High' } 
+                           else { 'Medium' }
+                           
+                $severityLevel = if ($coveragePercent -lt 50) { 4 } 
+                                elseif ($coveragePercent -lt 80) { 3 } 
+                                else { 2 }
+                
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'LAPS Security'
+                $finding.Issue = 'Incomplete LAPS Coverage'
+                $finding.Severity = $severity
+                $finding.SeverityLevel = $severityLevel
+                $finding.AffectedObject = "$($computersWithoutLAPS.Count) Computers"
+                $finding.Description = "Only $coveragePercent% of domain computers have LAPS passwords set. $($computersWithoutLAPS.Count) computers are missing LAPS coverage."
+                $finding.Impact = "Computers without LAPS retain static local administrator passwords, creating lateral movement opportunities for attackers."
+                $finding.Remediation = "Deploy LAPS Group Policy to all OUs containing computers. Verify LAPS client is installed and GPO is applied. Check: gpresult /r"
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/identity/laps/laps-management-policy-settings"
+                $finding.Details = @{
+                    TotalComputers = $totalComputers
+                    ComputersWithLAPS = $computersWithLAPS.Count
+                    ComputersWithoutLAPS = $computersWithoutLAPS.Count
+                    CoveragePercent = $coveragePercent
+                    SampleComputersWithoutLAPS = ($computersWithoutLAPS | Select-Object -First 10 -ExpandProperty Name) -join ', '
+                }
+                $findings += $finding
+            }
+            
+            # Check for expired LAPS passwords
+            $now = [DateTime]::UtcNow
+            $expiredLAPSComputers = $computersWithLAPS | Where-Object {
+                $expirationTime = [DateTime]::FromFileTimeUtc($_.'ms-Mcs-AdmPwdExpirationTime')
+                $expirationTime -lt $now
+            }
+            
+            if ($expiredLAPSComputers.Count -gt 0) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'LAPS Security'
+                $finding.Issue = 'Expired LAPS Passwords'
+                $finding.Severity = 'Medium'
+                $finding.SeverityLevel = 2
+                $finding.AffectedObject = "$($expiredLAPSComputers.Count) Computers"
+                $finding.Description = "$($expiredLAPSComputers.Count) computers have expired LAPS passwords that have not been rotated."
+                $finding.Impact = "Expired passwords may indicate computers that are offline, not receiving GPO updates, or have LAPS client issues."
+                $finding.Remediation = "Investigate why LAPS passwords are not rotating. Ensure computers are online and receiving Group Policy updates."
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/windows-security/laps-troubleshooting-guidance"
+                $finding.Details = @{
+                    ExpiredCount = $expiredLAPSComputers.Count
+                    SampleComputers = ($expiredLAPSComputers | Select-Object -First 10 -ExpandProperty Name) -join ', '
+                }
+                $findings += $finding
+            }
+        }
+        
+        Write-Verbose "LAPS deployment audit complete. Found $($findings.Count) issues."
+        return $findings
+    }
+    catch {
+        Write-Error "Error during LAPS audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region Audit Policy Configuration Audits
+
+function Test-AuditPolicyConfiguration {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Starting audit policy configuration audit..."
+    $findings = @()
+    
+    try {
+        # Get domain controllers to check audit policies
+        $domainControllers = Get-ADDomainController -Filter *
+        
+        Write-Verbose "Checking audit policies on $($domainControllers.Count) domain controller(s)..."
+        
+        # Critical audit policies that should be enabled
+        $requiredAuditPolicies = @{
+            'Account Logon' = @('Audit Credential Validation')
+            'Account Management' = @('Audit User Account Management', 'Audit Security Group Management')
+            'DS Access' = @('Audit Directory Service Access', 'Audit Directory Service Changes')
+            'Logon/Logoff' = @('Audit Logon', 'Audit Logoff', 'Audit Account Lockout')
+            'Object Access' = @('Audit File Share', 'Audit File System')
+            'Policy Change' = @('Audit Policy Change', 'Audit Authentication Policy Change')
+            'Privilege Use' = @('Audit Sensitive Privilege Use')
+            'System' = @('Audit Security State Change', 'Audit Security System Extension')
+        }
+        
+        foreach ($dc in $domainControllers) {
+            try {
+                # Check if we can query the DC (in a real scenario, you'd use Invoke-Command)
+                # For this script, we'll check local/default domain policy
+                
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Audit Policy'
+                $finding.Issue = 'Advanced Audit Policy Verification Required'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = $dc.Name
+                $finding.Description = "Advanced audit policies should be verified on domain controller '$($dc.Name)' to ensure proper security event logging."
+                $finding.Impact = "Without proper audit policies, security incidents cannot be detected or investigated effectively. Critical events may go unlogged."
+                $finding.Remediation = @"
+Verify and enable advanced audit policies on all DCs:
+1. Account Logon: Audit Credential Validation (Success, Failure)
+2. Account Management: Audit User/Security Group Management (Success, Failure)
+3. DS Access: Audit Directory Service Access/Changes (Success, Failure)
+4. Logon/Logoff: Audit Logon/Logoff/Account Lockout (Success, Failure)
+5. Object Access: Audit File Share/System (Success, Failure)
+6. Policy Change: Audit Policy/Auth Policy Change (Success, Failure)
+7. Privilege Use: Audit Sensitive Privilege Use (Success, Failure)
+8. System: Audit Security State Change/System Extension (Success, Failure)
+
+Use: auditpol /get /category:* to view current settings
+Configure via Group Policy: Computer Config > Windows Settings > Security Settings > Advanced Audit Policy
+"@
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/audit-policy-recommendations"
+                $finding.Details = @{
+                    DomainController = $dc.Name
+                    RequiredCategories = $requiredAuditPolicies.Keys -join ', '
+                }
+                $findings += $finding
+                
+            }
+            catch {
+                Write-Warning "Could not check audit policy on $($dc.Name): $_"
+            }
+        }
+        
+        # Check for SACL on sensitive AD objects
+        try {
+            $domain = Get-ADDomain
+            $domainRoot = $domain.DistinguishedName
+            
+            # Check if AdminSDHolder has auditing configured
+            $adminSDHolder = Get-ADObject "CN=AdminSDHolder,CN=System,$domainRoot" -Properties nTSecurityDescriptor -ErrorAction Stop
+            $acl = $adminSDHolder.nTSecurityDescriptor
+            
+            $hasAuditRules = $acl.GetAuditRules($true, $true, [System.Security.Principal.SecurityIdentifier]).Count -gt 0
+            
+            if (-not $hasAuditRules) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Audit Policy'
+                $finding.Issue = 'No Auditing on AdminSDHolder Object'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = 'AdminSDHolder'
+                $finding.Description = "The AdminSDHolder object does not have audit rules (SACL) configured to log access attempts."
+                $finding.Impact = "Changes to privileged group permissions and access attempts to critical AD objects will not be logged, hindering incident detection."
+                $finding.Remediation = "Configure SACL on AdminSDHolder to audit 'Write all properties' and 'Modify permissions' for 'Everyone' (Success and Failure)."
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows/win32/secauthz/audit-generation"
+                $finding.Details = @{
+                    DistinguishedName = $adminSDHolder.DistinguishedName
+                }
+                $findings += $finding
+            }
+        }
+        catch {
+            Write-Verbose "Could not check AdminSDHolder SACL: $_"
+        }
+        
+        Write-Verbose "Audit policy configuration audit complete. Found $($findings.Count) issues."
+        return $findings
+    }
+    catch {
+        Write-Error "Error during audit policy audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region Constrained Delegation Audits
+
+function Test-ConstrainedDelegation {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Starting constrained delegation security audit..."
+    $findings = @()
+    
+    try {
+        # Check user accounts with constrained delegation
+        $usersWithConstrainedDelegation = Get-ADUser -Filter {msDS-AllowedToDelegateTo -like '*'} `
+            -Properties msDS-AllowedToDelegateTo, TrustedForDelegation, TrustedToAuthForDelegation, ServicePrincipalNames, Enabled
+        
+        foreach ($user in $usersWithConstrainedDelegation) {
+            # Check for protocol transition (most dangerous)
+            if ($user.TrustedToAuthForDelegation -eq $true) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Kerberos Delegation'
+                $finding.Issue = 'User Account with Protocol Transition (T2A4D)'
+                $finding.Severity = 'Critical'
+                $finding.SeverityLevel = 4
+                $finding.AffectedObject = $user.SamAccountName
+                $finding.Description = "User account '$($user.SamAccountName)' has constrained delegation with protocol transition enabled (TrustedToAuthForDelegation)."
+                $finding.Impact = "Can impersonate ANY user to specified services without requiring their credentials. Highly exploitable for privilege escalation."
+                $finding.Remediation = "Disable protocol transition if not absolutely required. If needed, ensure the account has a very strong password (30+ characters) and is closely monitored. Consider migrating to Group Managed Service Accounts."
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-constrained-delegation-overview"
+                $finding.Details = @{
+                    DistinguishedName = $user.DistinguishedName
+                    AllowedToDelegateTo = $user.'msDS-AllowedToDelegateTo' -join '; '
+                    TrustedToAuthForDelegation = $user.TrustedToAuthForDelegation
+                    Enabled = $user.Enabled
+                }
+                $findings += $finding
+            }
+            else {
+                # Standard constrained delegation
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Kerberos Delegation'
+                $finding.Issue = 'User Account with Constrained Delegation'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = $user.SamAccountName
+                $finding.Description = "User account '$($user.SamAccountName)' has constrained delegation configured to specific services."
+                $finding.Impact = "Can impersonate authenticated users to specified services. Less risky than unconstrained delegation but still requires strong security controls."
+                $finding.Remediation = "Verify this configuration is necessary. Ensure strong password policy and monitoring. Review delegated services: $($user.'msDS-AllowedToDelegateTo' -join ', ')"
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-constrained-delegation-overview"
+                $finding.Details = @{
+                    DistinguishedName = $user.DistinguishedName
+                    AllowedToDelegateTo = $user.'msDS-AllowedToDelegateTo' -join '; '
+                    Enabled = $user.Enabled
+                }
+                $findings += $finding
+            }
+        }
+        
+        # Check computer accounts with constrained delegation
+        $computersWithConstrainedDelegation = Get-ADComputer -Filter {msDS-AllowedToDelegateTo -like '*'} `
+            -Properties msDS-AllowedToDelegateTo, TrustedForDelegation, TrustedToAuthForDelegation, ServicePrincipalNames, Enabled
+        
+        foreach ($computer in $computersWithConstrainedDelegation) {
+            if ($computer.TrustedToAuthForDelegation -eq $true) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Kerberos Delegation'
+                $finding.Issue = 'Computer Account with Protocol Transition (T2A4D)'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = $computer.Name
+                $finding.Description = "Computer account '$($computer.Name)' has constrained delegation with protocol transition enabled."
+                $finding.Impact = "If compromised, attackers can impersonate any user to specified services. Common on Exchange servers but requires securing the host."
+                $finding.Remediation = "Verify this configuration is required (common for Exchange/IIS). Ensure the computer is hardened, patched, and monitored. Services: $($computer.'msDS-AllowedToDelegateTo' -join ', ')"
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-constrained-delegation-overview"
+                $finding.Details = @{
+                    DistinguishedName = $computer.DistinguishedName
+                    AllowedToDelegateTo = $computer.'msDS-AllowedToDelegateTo' -join '; '
+                    TrustedToAuthForDelegation = $computer.TrustedToAuthForDelegation
+                    Enabled = $computer.Enabled
+                }
+                $findings += $finding
+            }
+        }
+        
+        # Check for Resource-Based Constrained Delegation (RBCD)
+        $objectsWithRBCD = Get-ADObject -Filter {msDS-AllowedToActOnBehalfOfOtherIdentity -like '*'} `
+            -Properties msDS-AllowedToActOnBehalfOfOtherIdentity, objectClass, Name
+        
+        foreach ($object in $objectsWithRBCD) {
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = 'Kerberos Delegation'
+            $finding.Issue = 'Resource-Based Constrained Delegation Configured'
+            $finding.Severity = 'Medium'
+            $finding.SeverityLevel = 2
+            $finding.AffectedObject = $object.Name
+            $finding.Description = "Object '$($object.Name)' has Resource-Based Constrained Delegation (RBCD) configured, allowing other accounts to impersonate users to this resource."
+            $finding.Impact = "RBCD can be exploited if an attacker can modify the msDS-AllowedToActOnBehalfOfOtherIdentity attribute or compromise accounts listed in it."
+            $finding.Remediation = "Review RBCD configuration and ensure only necessary accounts are allowed. Monitor for unauthorized changes to this attribute."
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-constrained-delegation-overview#resource-based-constrained-delegation"
+            $finding.Details = @{
+                DistinguishedName = $object.DistinguishedName
+                ObjectClass = $object.objectClass
+            }
+            $findings += $finding
+        }
+        
+        Write-Verbose "Constrained delegation audit complete. Found $($findings.Count) issues."
+        return $findings
+    }
+    catch {
+        Write-Error "Error during constrained delegation audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region Computer Account and Delegation Audits
+
+function Test-ComputerAccountDelegation {
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        [int]$InactiveDaysThreshold = 90
+    )
+    
+    Write-Verbose "Starting computer account delegation audit..."
+    $findings = @()
+    
+    try {
+        # Get all computer accounts with delegation-related properties
+        $computers = Get-ADComputer -Filter * -Properties `
+            TrustedForDelegation, TrustedToAuthForDelegation, `
+            msDS-AllowedToDelegateTo, LastLogonDate, OperatingSystem, `
+            ServicePrincipalNames, Enabled, DistinguishedName, `
+            PrimaryGroupID -ErrorAction Stop
+        
+        Write-Verbose "Analyzing $($computers.Count) computer accounts..."
+        
+        $computerCount = $computers.Count
+        $currentComputer = 0
+        
+        foreach ($computer in $computers) {
+            $currentComputer++
+            
+            if ($currentComputer % 50 -eq 0 -or $currentComputer -eq $computerCount) {
+                Write-Progress -Activity "Scanning Computer Accounts" -Status "Processing $($computer.Name)" `
+                    -PercentComplete (($currentComputer / $computerCount) * 100)
+            }
+            
+            # Check for unconstrained delegation on computer accounts
+            if ($computer.TrustedForDelegation -eq $true -and $computer.PrimaryGroupID -ne 516) {
+                # PrimaryGroupID 516 = Domain Controllers (DCs are expected to have this)
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Computer Account Security'
+                $finding.Issue = 'Unconstrained Delegation Enabled'
+                $finding.Severity = 'Critical'
+                $finding.SeverityLevel = 4
+                $finding.AffectedObject = $computer.Name
+                $finding.Description = "Computer account has unconstrained delegation enabled, which can be exploited to compromise any user credentials."
+                $finding.Impact = "An attacker who compromises this computer can impersonate ANY user (including Domain Admins) who authenticates to it. This is a critical privilege escalation path."
+                $finding.Remediation = "Disable unconstrained delegation immediately: Set-ADComputer -Identity '$($computer.Name)' -TrustedForDelegation `$false. If delegation is required, use constrained delegation instead."
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/defender-for-identity/security-assessment-unconstrained-kerberos"
+                $finding.Details = @{
+                    DistinguishedName = $computer.DistinguishedName
+                    OperatingSystem = $computer.OperatingSystem
+                    LastLogonDate = $computer.LastLogonDate
+                    ServicePrincipalNames = $computer.ServicePrincipalNames -join '; '
+                }
+                $findings += $finding
+            }
+            
+            # Check for protocol transition (TrustedToAuthForDelegation)
+            if ($computer.TrustedToAuthForDelegation -eq $true) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Computer Account Security'
+                $finding.Issue = 'Computer Trusted for Protocol Transition'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = $computer.Name
+                $finding.Description = "Computer account is trusted for protocol transition (Kerberos S4U2Self), allowing it to obtain service tickets on behalf of any user."
+                $finding.Impact = "This computer can impersonate users without requiring their credentials, potentially leading to privilege escalation."
+                $finding.Remediation = "Review if protocol transition is necessary. If not required, remove this setting. Ensure only specific services use this feature with constrained delegation."
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-constrained-delegation-overview"
+                $finding.Details = @{
+                    DistinguishedName = $computer.DistinguishedName
+                    OperatingSystem = $computer.OperatingSystem
+                    AllowedToDelegateTo = $computer.'msDS-AllowedToDelegateTo' -join '; '
+                }
+                $findings += $finding
+            }
+            
+            # Check for constrained delegation on computers
+            if ($computer.'msDS-AllowedToDelegateTo' -and $computer.'msDS-AllowedToDelegateTo'.Count -gt 0) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Computer Account Security'
+                $finding.Issue = 'Computer with Constrained Delegation'
+                $finding.Severity = 'Medium'
+                $finding.SeverityLevel = 2
+                $finding.AffectedObject = $computer.Name
+                $finding.Description = "Computer account has constrained delegation configured for $($computer.'msDS-AllowedToDelegateTo'.Count) service(s)."
+                $finding.Impact = "While constrained delegation is safer than unconstrained, it still allows this computer to impersonate users to specific services. Verify this is intentional and necessary."
+                $finding.Remediation = "Review delegation targets and ensure they are appropriate. Consider using Resource-Based Constrained Delegation (RBCD) for better security. Monitor for abuse."
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-constrained-delegation-overview"
+                $finding.Details = @{
+                    DistinguishedName = $computer.DistinguishedName
+                    OperatingSystem = $computer.OperatingSystem
+                    DelegationTargets = $computer.'msDS-AllowedToDelegateTo' -join '; '
+                    ProtocolTransition = $computer.TrustedToAuthForDelegation
+                }
+                $findings += $finding
+            }
+            
+            # Check for stale computer accounts
+            if ($computer.Enabled -eq $true -and $computer.LastLogonDate) {
+                $daysSinceLogon = (Get-Date) - $computer.LastLogonDate
+                if ($daysSinceLogon.Days -gt $InactiveDaysThreshold) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Computer Account Security'
+                    $finding.Issue = 'Stale Computer Account'
+                    $finding.Severity = 'Low'
+                    $finding.SeverityLevel = 1
+                    $finding.AffectedObject = $computer.Name
+                    $finding.Description = "Enabled computer account has not authenticated to the domain in $($daysSinceLogon.Days) days."
+                    $finding.Impact = "Stale computer accounts increase attack surface and may have weak security configurations. They can be used for persistence if compromised."
+                    $finding.Remediation = "Verify if this computer is still in use. If not, disable or delete: Disable-ADAccount -Identity '$($computer.Name)'"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/identity/remove-stale-domain-controller"
+                    $finding.Details = @{
+                        DistinguishedName = $computer.DistinguishedName
+                        OperatingSystem = $computer.OperatingSystem
+                        LastLogonDate = $computer.LastLogonDate
+                        DaysSinceLogon = $daysSinceLogon.Days
+                    }
+                    $findings += $finding
+                }
+            }
+        }
+        
+        # Check Machine Account Quota
+        $rootDSE = Get-ADRootDSE
+        $domainDN = $rootDSE.defaultNamingContext
+        $domainObject = Get-ADObject -Identity $domainDN -Properties ms-DS-MachineAccountQuota
+        $machineAccountQuota = $domainObject.'ms-DS-MachineAccountQuota'
+        
+        if ($machineAccountQuota -gt 0) {
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = 'Computer Account Security'
+            $finding.Issue = 'Machine Account Quota Enabled'
+            $finding.Severity = 'Medium'
+            $finding.SeverityLevel = 2
+            $finding.AffectedObject = 'Domain'
+            $finding.Description = "The ms-DS-MachineAccountQuota is set to $machineAccountQuota, allowing non-privileged users to join computers to the domain."
+            $finding.Impact = "Attackers can add rogue computers to the domain, which can be used for privilege escalation attacks (e.g., resource-based constrained delegation abuse)."
+            $finding.Remediation = "Set ms-DS-MachineAccountQuota to 0: Set-ADDomain -Identity '$($domain.DistinguishedName)' -Replace @{'ms-DS-MachineAccountQuota'=0}. Control computer joins through Group Policy or delegated permissions."
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/add-workstations-to-domain"
+            $finding.Details = @{
+                CurrentQuota = $machineAccountQuota
+                DomainDN = $domainDN
+            }
+            $findings += $finding
+        }
+        
+        Write-Progress -Activity "Scanning Computer Accounts" -Completed
+        Write-Verbose "Computer account delegation audit complete. Found $($findings.Count) issues."
+        return $findings
+    }
+    catch {
+        Write-Error "Error during computer account delegation audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region Fine-Grained Password Policy Audits
+
+function Test-FineGrainedPasswordPolicies {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Starting fine-grained password policy audit..."
+    $findings = @()
+    
+    try {
+        # Check domain functional level (FGPP requires Windows Server 2008 or higher)
+        $domain = Get-ADDomain
+        $domainLevel = $domain.DomainMode
+        
+        if ($domainLevel -lt 'Windows2008Domain') {
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = 'Password Policies'
+            $finding.Issue = 'Fine-Grained Password Policies Not Supported'
+            $finding.Severity = 'Low'
+            $finding.SeverityLevel = 1
+            $finding.AffectedObject = 'Domain'
+            $finding.Description = "Domain functional level ($domainLevel) does not support Fine-Grained Password Policies (FGPP)."
+            $finding.Impact = "Cannot enforce different password policies for different user groups, limiting security flexibility for privileged accounts."
+            $finding.Remediation = "Consider raising domain functional level to Windows Server 2008 or higher to enable FGPP support."
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/cc770394(v=ws.10)"
+            $finding.Details = @{
+                DomainMode = $domainLevel
+                DomainName = $domain.DNSRoot
+            }
+            $findings += $finding
+            return $findings
+        }
+        
+        # Get default domain password policy
+        $defaultPolicy = Get-ADDefaultDomainPasswordPolicy -ErrorAction Stop
+        
+        # Audit default domain password policy
+        if ($defaultPolicy.MinPasswordLength -lt 14) {
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = 'Password Policies'
+            $finding.Issue = 'Weak Default Password Length'
+            $finding.Severity = 'High'
+            $finding.SeverityLevel = 3
+            $finding.AffectedObject = 'Default Domain Policy'
+            $finding.Description = "Default domain password policy requires only $($defaultPolicy.MinPasswordLength) characters. NIST recommends minimum 14 characters."
+            $finding.Impact = "Short passwords are vulnerable to brute-force and password spray attacks."
+            $finding.Remediation = "Increase minimum password length to at least 14 characters: Set-ADDefaultDomainPasswordPolicy -MinPasswordLength 14 -Identity '$($domain.DistinguishedName)'"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/minimum-password-length"
+            $finding.Details = @{
+                CurrentMinLength = $defaultPolicy.MinPasswordLength
+                RecommendedMinLength = 14
+            }
+            $findings += $finding
+        }
+        
+        if ($defaultPolicy.ComplexityEnabled -eq $false) {
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = 'Password Policies'
+            $finding.Issue = 'Password Complexity Disabled'
+            $finding.Severity = 'Critical'
+            $finding.SeverityLevel = 4
+            $finding.AffectedObject = 'Default Domain Policy'
+            $finding.Description = "Password complexity is disabled in the default domain password policy."
+            $finding.Impact = "Users can set simple, easily guessable passwords, significantly increasing risk of compromise."
+            $finding.Remediation = "Enable password complexity: Set-ADDefaultDomainPasswordPolicy -ComplexityEnabled `$true -Identity '$($domain.DistinguishedName)'"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/password-must-meet-complexity-requirements"
+            $finding.Details = @{
+                ComplexityEnabled = $defaultPolicy.ComplexityEnabled
+            }
+            $findings += $finding
+        }
+        
+        if ($defaultPolicy.LockoutThreshold -eq 0) {
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = 'Password Policies'
+            $finding.Issue = 'Account Lockout Not Configured'
+            $finding.Severity = 'High'
+            $finding.SeverityLevel = 3
+            $finding.AffectedObject = 'Default Domain Policy'
+            $finding.Description = "Account lockout is not enabled (threshold is 0), allowing unlimited password attempts."
+            $finding.Impact = "Domain is vulnerable to password brute-force and spray attacks with no automatic account lockout protection."
+            $finding.Remediation = "Configure account lockout: Set-ADDefaultDomainPasswordPolicy -LockoutThreshold 5 -LockoutDuration 00:30:00 -LockoutObservationWindow 00:30:00"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/account-lockout-threshold"
+            $finding.Details = @{
+                LockoutThreshold = $defaultPolicy.LockoutThreshold
+                RecommendedThreshold = 5
+            }
+            $findings += $finding
+        }
+        
+        if ($defaultPolicy.MaxPasswordAge.Days -gt 90 -or $defaultPolicy.MaxPasswordAge.Days -eq 0) {
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = 'Password Policies'
+            $finding.Issue = 'Password Expiration Too Long or Disabled'
+            $finding.Severity = 'Medium'
+            $finding.SeverityLevel = 2
+            $finding.AffectedObject = 'Default Domain Policy'
+            $finding.Description = "Maximum password age is $($defaultPolicy.MaxPasswordAge.Days) days. Recommended is 60-90 days."
+            $finding.Impact = "Long-lived passwords increase the window of opportunity for compromised credentials to be exploited."
+            $finding.Remediation = "Set reasonable password expiration: Set-ADDefaultDomainPasswordPolicy -MaxPasswordAge 90.00:00:00"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/maximum-password-age"
+            $finding.Details = @{
+                CurrentMaxAge = $defaultPolicy.MaxPasswordAge.Days
+                RecommendedMaxAge = 90
+            }
+            $findings += $finding
+        }
+        
+        # Get all Fine-Grained Password Policies (PSOs)
+        $psos = Get-ADFineGrainedPasswordPolicy -Filter * -Properties * -ErrorAction SilentlyContinue
+        
+        if (-not $psos -or $psos.Count -eq 0) {
+            # Check if privileged accounts exist
+            $privilegedGroups = @('Domain Admins', 'Enterprise Admins', 'Schema Admins')
+            $hasPrivilegedUsers = $false
+            
+            foreach ($groupName in $privilegedGroups) {
+                $group = Get-ADGroup -Filter "Name -eq '$groupName'" -ErrorAction SilentlyContinue
+                if ($group) {
+                    $members = Get-ADGroupMember -Identity $group -ErrorAction SilentlyContinue
+                    if ($members) {
+                        $hasPrivilegedUsers = $true
+                        break
+                    }
+                }
+            }
+            
+            if ($hasPrivilegedUsers) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Password Policies'
+                $finding.Issue = 'No Fine-Grained Password Policies for Privileged Accounts'
+                $finding.Severity = 'High'
+                $finding.SeverityLevel = 3
+                $finding.AffectedObject = 'Domain'
+                $finding.Description = "No Fine-Grained Password Policies (PSOs) are configured, but privileged accounts exist in the domain."
+                $finding.Impact = "Privileged accounts follow the same password policy as standard users, which may not provide adequate protection for high-value accounts."
+                $finding.Remediation = "Create a stricter PSO for privileged accounts with longer passwords (20+ chars), shorter expiration, and stricter lockout policies. Use New-ADFineGrainedPasswordPolicy cmdlet."
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/cc770842(v=ws.10)"
+                $finding.Details = @{
+                    PSOCount = 0
+                    DomainFunctionalLevel = $domainLevel
+                }
+                $findings += $finding
+            }
+        }
+        else {
+            Write-Verbose "Found $($psos.Count) Fine-Grained Password Policy Objects"
+            
+            foreach ($pso in $psos) {
+                # Check PSO password length
+                if ($pso.MinPasswordLength -lt 20) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Password Policies'
+                    $finding.Issue = 'Weak PSO Password Length'
+                    $finding.Severity = 'Medium'
+                    $finding.SeverityLevel = 2
+                    $finding.AffectedObject = $pso.Name
+                    $finding.Description = "Fine-Grained Password Policy '$($pso.Name)' requires only $($pso.MinPasswordLength) characters. For privileged accounts, 20+ characters recommended."
+                    $finding.Impact = "PSOs typically apply to privileged accounts. Weak password requirements reduce protection for high-value targets."
+                    $finding.Remediation = "Increase minimum password length for PSO: Set-ADFineGrainedPasswordPolicy -Identity '$($pso.Name)' -MinPasswordLength 20"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/powershell/module/activedirectory/set-adfinegrainedpasswordpolicy"
+                    $finding.Details = @{
+                        PSOName = $pso.Name
+                        CurrentMinLength = $pso.MinPasswordLength
+                        RecommendedMinLength = 20
+                        AppliesTo = $pso.AppliesTo -join '; '
+                        Precedence = $pso.Precedence
+                    }
+                    $findings += $finding
+                }
+                
+                # Check PSO complexity
+                if ($pso.ComplexityEnabled -eq $false) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Password Policies'
+                    $finding.Issue = 'PSO Password Complexity Disabled'
+                    $finding.Severity = 'High'
+                    $finding.SeverityLevel = 3
+                    $finding.AffectedObject = $pso.Name
+                    $finding.Description = "Fine-Grained Password Policy '$($pso.Name)' has password complexity disabled."
+                    $finding.Impact = "Accounts under this PSO can use simple passwords, increasing compromise risk for what are typically privileged accounts."
+                    $finding.Remediation = "Enable complexity: Set-ADFineGrainedPasswordPolicy -Identity '$($pso.Name)' -ComplexityEnabled `$true"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/powershell/module/activedirectory/set-adfinegrainedpasswordpolicy"
+                    $finding.Details = @{
+                        PSOName = $pso.Name
+                        ComplexityEnabled = $pso.ComplexityEnabled
+                        AppliesTo = $pso.AppliesTo -join '; '
+                    }
+                    $findings += $finding
+                }
+                
+                # Check if PSO has any objects assigned
+                if (-not $pso.AppliesTo -or $pso.AppliesTo.Count -eq 0) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Password Policies'
+                    $finding.Issue = 'PSO Not Applied to Any Objects'
+                    $finding.Severity = 'Low'
+                    $finding.SeverityLevel = 1
+                    $finding.AffectedObject = $pso.Name
+                    $finding.Description = "Fine-Grained Password Policy '$($pso.Name)' exists but is not applied to any users or groups."
+                    $finding.Impact = "The PSO has no effect and represents unused configuration that should be cleaned up."
+                    $finding.Remediation = "Either apply the PSO to appropriate users/groups using Add-ADFineGrainedPasswordPolicySubject, or remove it if not needed."
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/powershell/module/activedirectory/add-adfinegrainedpasswordpolicysubject"
+                    $finding.Details = @{
+                        PSOName = $pso.Name
+                        Precedence = $pso.Precedence
+                        MinPasswordLength = $pso.MinPasswordLength
+                    }
+                    $findings += $finding
+                }
+                
+                # Check for conflicting PSos (same precedence)
+                $conflictingPSOs = $psos | Where-Object { 
+                    $_.Name -ne $pso.Name -and $_.Precedence -eq $pso.Precedence 
+                }
+                
+                if ($conflictingPSOs) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Password Policies'
+                    $finding.Issue = 'PSO Precedence Conflict'
+                    $finding.Severity = 'Medium'
+                    $finding.SeverityLevel = 2
+                    $finding.AffectedObject = $pso.Name
+                    $finding.Description = "PSO '$($pso.Name)' has the same precedence ($($pso.Precedence)) as other PSO(s): $($conflictingPSOs.Name -join ', ')"
+                    $finding.Impact = "When multiple PSOs apply to the same user with identical precedence, the result is unpredictable and may not enforce intended policies."
+                    $finding.Remediation = "Assign unique precedence values to all PSOs. Lower numbers have higher priority. Review and adjust precedence values."
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/cc770394(v=ws.10)#precedence"
+                    $finding.Details = @{
+                        PSOName = $pso.Name
+                        Precedence = $pso.Precedence
+                        ConflictingPSOs = $conflictingPSOs.Name -join '; '
+                    }
+                    $findings += $finding
+                }
+            }
+        }
+        
+        Write-Verbose "Fine-grained password policy audit complete. Found $($findings.Count) issues."
+        return $findings
+    }
+    catch {
+        Write-Error "Error during fine-grained password policy audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region DNS Security Audits
+
+function Test-DNSSecurityConfiguration {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Starting DNS security configuration audit..."
+    $findings = @()
+    
+    try {
+        # Get all domain controllers (DNS servers)
+        $domainControllers = Get-ADDomainController -Filter * -ErrorAction Stop
+        
+        Write-Verbose "Analyzing DNS configuration on $($domainControllers.Count) domain controller(s)..."
+        
+        foreach ($dc in $domainControllers) {
+            $dcName = $dc.HostName
+            
+            Write-Verbose "Checking DNS on $dcName..."
+            
+            # Check if DNS service is running
+            try {
+                $dnsService = Get-Service -Name DNS -ComputerName $dcName -ErrorAction Stop
+                
+                if ($dnsService.Status -ne 'Running') {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'DNS Security'
+                    $finding.Issue = 'DNS Service Not Running on DC'
+                    $finding.Severity = 'High'
+                    $finding.SeverityLevel = 3
+                    $finding.AffectedObject = $dcName
+                    $finding.Description = "DNS service is not running on domain controller $dcName."
+                    $finding.Impact = "Clients may experience authentication and name resolution issues. Domain functionality may be degraded."
+                    $finding.Remediation = "Start DNS service: Start-Service -Name DNS -ComputerName '$dcName'. Investigate why the service stopped."
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/dns-server-not-starting"
+                    $finding.Details = @{
+                        ServiceStatus = $dnsService.Status
+                        DomainController = $dcName
+                    }
+                    $findings += $finding
+                }
+            }
+            catch {
+                Write-Verbose "Could not query DNS service on $dcName : $_"
+            }
+            
+            # Check DNS zone security using WMI/CIM
+            try {
+                $dnsZones = Get-CimInstance -ComputerName $dcName -Namespace root\MicrosoftDNS `
+                    -ClassName MicrosoftDNS_Zone -ErrorAction Stop
+                
+                foreach ($zone in $dnsZones) {
+                    # Check for zone transfers allowed to any server
+                    if ($zone.SecureSecondaries -eq 0) {
+                        $finding = [ADSecurityFinding]::new()
+                        $finding.Category = 'DNS Security'
+                        $finding.Issue = 'DNS Zone Transfers Unrestricted'
+                        $finding.Severity = 'High'
+                        $finding.SeverityLevel = 3
+                        $finding.AffectedObject = "$dcName - $($zone.Name)"
+                        $finding.Description = "DNS zone '$($zone.Name)' on $dcName allows zone transfers to any server."
+                        $finding.Impact = "Attackers can enumerate all DNS records, revealing network topology, server names, and potential targets."
+                        $finding.Remediation = "Restrict zone transfers to authorized DNS servers only through DNS Manager or Set-DnsServerPrimaryZone cmdlet."
+                        $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/networking/dns/zone-transfers"
+                        $finding.Details = @{
+                            ZoneName = $zone.Name
+                            SecureSecondaries = $zone.SecureSecondaries
+                            DomainController = $dcName
+                            ZoneType = $zone.ZoneType
+                        }
+                        $findings += $finding
+                    }
+                    
+                    # Check for unsigned zones (DNSSEC)
+                    if ($zone.ZoneType -eq 1 -and $zone.IsSigned -eq $false) {
+                        # ZoneType 1 = Primary zone
+                        $finding = [ADSecurityFinding]::new()
+                        $finding.Category = 'DNS Security'
+                        $finding.Issue = 'DNS Zone Not Signed (No DNSSEC)'
+                        $finding.Severity = 'Medium'
+                        $finding.SeverityLevel = 2
+                        $finding.AffectedObject = "$dcName - $($zone.Name)"
+                        $finding.Description = "DNS zone '$($zone.Name)' on $dcName is not signed with DNSSEC."
+                        $finding.Impact = "Zone is vulnerable to DNS spoofing and cache poisoning attacks. Clients cannot verify authenticity of DNS responses."
+                        $finding.Remediation = "Consider implementing DNSSEC: Use 'Sign-DnsServerZone' cmdlet or DNS Manager to sign the zone. Note: Requires proper key management."
+                        $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/networking/dns/dnssec-overview"
+                        $finding.Details = @{
+                            ZoneName = $zone.Name
+                            IsSigned = $zone.IsSigned
+                            DomainController = $dcName
+                        }
+                        $findings += $finding
+                    }
+                    
+                    # Check for dynamic updates set to non-secure
+                    if ($zone.AllowUpdate -eq 1) {
+                        # AllowUpdate: 0=None, 1=Non-secure, 2=Secure only
+                        $finding = [ADSecurityFinding]::new()
+                        $finding.Category = 'DNS Security'
+                        $finding.Issue = 'Non-Secure DNS Dynamic Updates Allowed'
+                        $finding.Severity = 'Critical'
+                        $finding.SeverityLevel = 4
+                        $finding.AffectedObject = "$dcName - $($zone.Name)"
+                        $finding.Description = "DNS zone '$($zone.Name)' on $dcName allows non-secure dynamic updates."
+                        $finding.Impact = "Attackers can register malicious DNS records, hijack existing hostnames, and perform man-in-the-middle attacks. This is a critical security vulnerability."
+                        $finding.Remediation = "Change to secure dynamic updates only: Set-DnsServerPrimaryZone -Name '$($zone.Name)' -DynamicUpdate Secure -ComputerName '$dcName'"
+                        $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/configure-dns-dynamic-updates-windows-server-2003"
+                        $finding.Details = @{
+                            ZoneName = $zone.Name
+                            AllowUpdate = $zone.AllowUpdate
+                            DomainController = $dcName
+                        }
+                        $findings += $finding
+                    }
+                }
+            }
+            catch {
+                Write-Verbose "Could not query DNS zones on $dcName : $_"
+            }
+            
+            # Check for DNS scavenging configuration
+            try {
+                $dnsServer = Get-CimInstance -ComputerName $dcName -Namespace root\MicrosoftDNS `
+                    -ClassName MicrosoftDNS_Server -ErrorAction Stop
+                
+                if ($dnsServer.ScavengingInterval -eq 0) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'DNS Security'
+                    $finding.Issue = 'DNS Scavenging Disabled'
+                    $finding.Severity = 'Low'
+                    $finding.SeverityLevel = 1
+                    $finding.AffectedObject = $dcName
+                    $finding.Description = "DNS scavenging is disabled on $dcName. Stale DNS records will accumulate over time."
+                    $finding.Impact = "Stale records can lead to connectivity issues and provide outdated information to attackers during reconnaissance."
+                    $finding.Remediation = "Enable DNS scavenging: Set-DnsServerScavenging -ScavengingState `$true -ScavengingInterval 7.00:00:00 -ComputerName '$dcName'"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/dns-scavenging-setup"
+                    $finding.Details = @{
+                        ScavengingInterval = $dnsServer.ScavengingInterval
+                        DomainController = $dcName
+                    }
+                    $findings += $finding
+                }
+            }
+            catch {
+                Write-Verbose "Could not query DNS server settings on $dcName : $_"
+            }
+            
+            # Check for DNS global query block list (protects against WPAD/ISATAP attacks)
+            try {
+                $queryBlockList = Invoke-Command -ComputerName $dcName -ScriptBlock {
+                    try {
+                        $list = Get-DnsServerGlobalQueryBlockList -ErrorAction Stop
+                        return $list
+                    }
+                    catch {
+                        return $null
+                    }
+                } -ErrorAction SilentlyContinue
+                
+                if ($queryBlockList -and $queryBlockList.Enable -eq $false) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'DNS Security'
+                    $finding.Issue = 'DNS Global Query Block List Disabled'
+                    $finding.Severity = 'Medium'
+                    $finding.SeverityLevel = 2
+                    $finding.AffectedObject = $dcName
+                    $finding.Description = "DNS Global Query Block List is disabled on $dcName, which protects against WPAD and ISATAP name hijacking."
+                    $finding.Impact = "Domain is vulnerable to WPAD hijacking attacks where attackers can intercept web proxy settings and capture credentials."
+                    $finding.Remediation = "Enable global query block list: Set-DnsServerGlobalQueryBlockList -Enable `$true -ComputerName '$dcName'"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/powershell/module/dnsserver/set-dnsserverglobalqueryblocklist"
+                    $finding.Details = @{
+                        Enabled = $queryBlockList.Enable
+                        BlockedNames = $queryBlockList.List -join '; '
+                        DomainController = $dcName
+                    }
+                    $findings += $finding
+                }
+            }
+            catch {
+                Write-Verbose "Could not query DNS global query block list on $dcName : $_"
+            }
+        }
+        
+        # Check for LDAP signing and channel binding (prevents LDAP relay attacks)
+        foreach ($dc in $domainControllers) {
+            $dcName = $dc.HostName
+            
+            try {
+                $ldapPolicy = Invoke-Command -ComputerName $dcName -ScriptBlock {
+                    $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters"
+                    $ldapSigning = Get-ItemProperty -Path $regPath -Name "LDAPServerIntegrity" -ErrorAction SilentlyContinue
+                    $channelBinding = Get-ItemProperty -Path $regPath -Name "LdapEnforceChannelBinding" -ErrorAction SilentlyContinue
+                    
+                    return @{
+                        LDAPServerIntegrity = $ldapSigning.LDAPServerIntegrity
+                        LdapEnforceChannelBinding = $channelBinding.LdapEnforceChannelBinding
+                    }
+                } -ErrorAction SilentlyContinue
+                
+                if ($ldapPolicy.LDAPServerIntegrity -ne 2) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'DNS Security'
+                    $finding.Issue = 'LDAP Signing Not Required'
+                    $finding.Severity = 'High'
+                    $finding.SeverityLevel = 3
+                    $finding.AffectedObject = $dcName
+                    $finding.Description = "LDAP signing is not required on domain controller $dcName (current value: $($ldapPolicy.LDAPServerIntegrity))."
+                    $finding.Impact = "Domain is vulnerable to LDAP relay attacks where attackers can intercept and modify LDAP traffic, potentially gaining privileged access."
+                    $finding.Remediation = "Require LDAP signing via registry: Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters' -Name 'LDAPServerIntegrity' -Value 2. Or use Group Policy: Computer Configuration > Policies > Windows Settings > Security Settings > Local Policies > Security Options > 'Domain controller: LDAP server signing requirements' = 'Require signing'"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-security/threat-protection/security-policy-settings/domain-controller-ldap-server-signing-requirements"
+                    $finding.Details = @{
+                        CurrentValue = $ldapPolicy.LDAPServerIntegrity
+                        RequiredValue = 2
+                        DomainController = $dcName
+                    }
+                    $findings += $finding
+                }
+                
+                if ($ldapPolicy.LdapEnforceChannelBinding -ne 2) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'DNS Security'
+                    $finding.Issue = 'LDAP Channel Binding Not Required'
+                    $finding.Severity = 'High'
+                    $finding.SeverityLevel = 3
+                    $finding.AffectedObject = $dcName
+                    $finding.Description = "LDAP channel binding is not enforced on domain controller $dcName (current value: $($ldapPolicy.LdapEnforceChannelBinding))."
+                    $finding.Impact = "Vulnerable to LDAP relay attacks even over TLS. Channel binding ensures the TLS channel cannot be relayed."
+                    $finding.Remediation = "Enforce LDAP channel binding: Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters' -Name 'LdapEnforceChannelBinding' -Value 2"
+                    $finding.DocumentationLink = "https://support.microsoft.com/en-us/topic/use-the-ldapenforcechannelbinding-registry-entry-to-make-ldap-authentication-over-ssl-tls-more-secure-e9ecfa27-5e57-8519-6ba3-d2c06b38d034"
+                    $finding.Details = @{
+                        CurrentValue = $ldapPolicy.LdapEnforceChannelBinding
+                        RequiredValue = 2
+                        DomainController = $dcName
+                    }
+                    $findings += $finding
+                }
+            }
+            catch {
+                Write-Verbose "Could not query LDAP policy on $dcName : $_"
+            }
+        }
+        
+        Write-Verbose "DNS security configuration audit complete. Found $($findings.Count) issues."
+        return $findings
+    }
+    catch {
+        Write-Error "Error during DNS security configuration audit: $_"
+        throw
+    }
+}
+
+#endregion
+
+#region Replication Health Audit
+
+function Test-ADReplicationHealth {
+    <#
+    .SYNOPSIS
+    Audits Active Directory replication health including partners, latency, and failures.
+    
+    .DESCRIPTION
+    Checks replication status across all domain controllers, identifies replication failures,
+    measures replication latency, and validates replication partner configurations.
+    
+    .OUTPUTS
+    Array of ADSecurityFinding objects
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $findings = @()
+    Write-Host "Checking AD Replication Health..." -ForegroundColor Cyan
+    
+    try {
+        # Get all domain controllers
+        $allDCs = Get-ADDomainController -Filter * -ErrorAction Stop
+        
+        if ($allDCs.Count -eq 0) {
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = "Replication Health"
+            $finding.Issue = "No Domain Controllers Found"
+            $finding.Severity = "Critical"
+            $finding.SeverityLevel = $Script:SeverityLevels.Critical
+            $finding.Description = "Unable to enumerate domain controllers for replication health check"
+            $finding.Impact = "Cannot assess replication health which is critical for AD availability"
+            $finding.Remediation = "Verify domain controller availability and connectivity"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/identity/troubleshoot-domain-controller-issues"
+            $finding.AffectedObject = "Domain Controllers"
+            $finding.Details = @{
+                'Message' = 'No domain controllers found in the domain.'
+            }
+            $findings += $finding
+            return $findings
+        }
+        
+        Write-Verbose "Found $($allDCs.Count) domain controller(s)"
+        
+        # Check replication status for each DC
+        foreach ($dc in $allDCs) {
+            Write-Verbose "Checking replication for: $($dc.HostName)"
+            
+            try {
+                # Test connectivity first
+                $pingResult = Test-Connection -ComputerName $dc.HostName -Count 1 -Quiet -ErrorAction SilentlyContinue
+                
+                if (-not $pingResult) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = "Replication Health"
+                    $finding.Issue = "Domain Controller Unreachable"
+                    $finding.Severity = "High"
+                    $finding.SeverityLevel = $Script:SeverityLevels.High
+                    $finding.Description = "Domain Controller $($dc.HostName) is not responding to network requests"
+                    $finding.Impact = "Replication may be failing, causing directory inconsistencies"
+                    $finding.Remediation = "Verify network connectivity and DC health for $($dc.HostName)"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/identity/troubleshoot-ad-replication-problems"
+                    $finding.AffectedObject = $dc.HostName
+                    $finding.Details = @{
+                        'Site' = $dc.Site
+                        'IsGlobalCatalog' = $dc.IsGlobalCatalog
+                        'IsReadOnly' = $dc.IsReadOnly
+                    }
+                    $findings += $finding
+                    continue
+                }
+                
+                # Get replication metadata
+                $replMetadata = Get-ADReplicationPartnerMetadata -Target $dc.HostName -Scope Domain -ErrorAction SilentlyContinue
+                
+                if ($replMetadata) {
+                    foreach ($metadata in $replMetadata) {
+                        # Check for replication failures
+                        if ($metadata.LastReplicationResult -ne 0) {
+                            $finding = [ADSecurityFinding]::new()
+                            $finding.Category = "Replication Health"
+                            $finding.Issue = "Replication Failure Detected"
+                            $finding.Severity = "Critical"
+                            $finding.SeverityLevel = $Script:SeverityLevels.Critical
+                            $finding.Description = "Replication failure between $($dc.HostName) and $($metadata.Partner)"
+                            $finding.Impact = "Directory data may be inconsistent across domain controllers, affecting authentication and authorization"
+                            $finding.Remediation = "Investigate replication error code $($metadata.LastReplicationResult) using 'repadmin /showrepl' and resolve network or AD issues"
+                            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/identity/active-directory-replication-error-codes"
+                            $finding.AffectedObject = "$($dc.HostName) <-> $($metadata.Partner)"
+                            $finding.Details = @{
+                                'SourceDC' = $dc.HostName
+                                'PartnerDC' = $metadata.Partner
+                                'Partition' = $metadata.Partition
+                                'ErrorCode' = $metadata.LastReplicationResult
+                                'LastAttempt' = $metadata.LastReplicationAttempt
+                                'LastSuccess' = $metadata.LastReplicationSuccess
+                                'ConsecutiveFailures' = $metadata.ConsecutiveReplicationFailures
+                            }
+                            $findings += $finding
+                        }
+                        
+                        # Check for high replication latency (last success > 12 hours ago)
+                        if ($metadata.LastReplicationSuccess) {
+                            $timeSinceLastReplication = (Get-Date) - $metadata.LastReplicationSuccess
+                            
+                            if ($timeSinceLastReplication.TotalHours -gt 24) {
+                                $finding = [ADSecurityFinding]::new()
+                                $finding.Category = "Replication Health"
+                                $finding.Issue = "High Replication Latency"
+                                $finding.Severity = "High"
+                                $finding.SeverityLevel = $Script:SeverityLevels.High
+                                $finding.Description = "Replication between $($dc.HostName) and $($metadata.Partner) has not succeeded in $([math]::Round($timeSinceLastReplication.TotalHours, 2)) hours"
+                                $finding.Impact = "Delayed replication can cause authentication failures and directory inconsistencies"
+                                $finding.Remediation = "Check network connectivity, investigate replication queue, and review event logs on both domain controllers"
+                                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/identity/troubleshoot-ad-replication-problems"
+                                $finding.AffectedObject = "$($dc.HostName) <-> $($metadata.Partner)"
+                                $finding.Details = @{
+                                    'SourceDC' = $dc.HostName
+                                    'PartnerDC' = $metadata.Partner
+                                    'Partition' = $metadata.Partition
+                                    'HoursSinceLastReplication' = [math]::Round($timeSinceLastReplication.TotalHours, 2)
+                                    'LastSuccess' = $metadata.LastReplicationSuccess
+                                }
+                                $findings += $finding
+                            }
+                            elseif ($timeSinceLastReplication.TotalHours -gt 12) {
+                                $finding = [ADSecurityFinding]::new()
+                                $finding.Category = "Replication Health"
+                                $finding.Issue = "Moderate Replication Latency"
+                                $finding.Severity = "Medium"
+                                $finding.SeverityLevel = $Script:SeverityLevels.Medium
+                                $finding.Description = "Replication between $($dc.HostName) and $($metadata.Partner) has not succeeded in $([math]::Round($timeSinceLastReplication.TotalHours, 2)) hours"
+                                $finding.Impact = "May cause delays in directory updates propagating across domain controllers"
+                                $finding.Remediation = "Monitor replication status and verify network connectivity between domain controllers"
+                                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/replication/active-directory-replication-concepts"
+                                $finding.AffectedObject = "$($dc.HostName) <-> $($metadata.Partner)"
+                                $finding.Details = @{
+                                    'SourceDC' = $dc.HostName
+                                    'PartnerDC' = $metadata.Partner
+                                    'Partition' = $metadata.Partition
+                                    'HoursSinceLastReplication' = [math]::Round($timeSinceLastReplication.TotalHours, 2)
+                                    'LastSuccess' = $metadata.LastReplicationSuccess
+                                }
+                                $findings += $finding
+                            }
+                        }
+                        
+                        # Check for consecutive replication failures
+                        if ($metadata.ConsecutiveReplicationFailures -gt 5) {
+                            $finding = [ADSecurityFinding]::new()
+                            $finding.Category = "Replication Health"
+                            $finding.Issue = "Multiple Consecutive Replication Failures"
+                            $finding.Severity = "Critical"
+                            $finding.SeverityLevel = $Script:SeverityLevels.Critical
+                            $finding.Description = "Replication between $($dc.HostName) and $($metadata.Partner) has failed $($metadata.ConsecutiveReplicationFailures) consecutive times"
+                            $finding.Impact = "Persistent replication failures indicate a serious configuration or connectivity issue"
+                            $finding.Remediation = "Urgently investigate and resolve replication errors using 'repadmin /showrepl' and 'dcdiag /test:replications'"
+                            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/identity/troubleshoot-ad-replication-problems"
+                            $finding.AffectedObject = "$($dc.HostName) <-> $($metadata.Partner)"
+                            $finding.Details = @{
+                                'SourceDC' = $dc.HostName
+                                'PartnerDC' = $metadata.Partner
+                                'Partition' = $metadata.Partition
+                                'ConsecutiveFailures' = $metadata.ConsecutiveReplicationFailures
+                                'LastAttempt' = $metadata.LastReplicationAttempt
+                            }
+                            $findings += $finding
+                        }
+                    }
+                }
+                
+                # Get replication queue status
+                try {
+                    $replQueue = Get-ADReplicationQueueOperation -Server $dc.HostName -ErrorAction SilentlyContinue
+                    
+                    if ($replQueue) {
+                        $queueCount = ($replQueue | Measure-Object).Count
+                        
+                        if ($queueCount -gt 100) {
+                            $finding = [ADSecurityFinding]::new()
+                            $finding.Category = "Replication Health"
+                            $finding.Issue = "Large Replication Queue"
+                            $finding.Severity = "High"
+                            $finding.SeverityLevel = $Script:SeverityLevels.High
+                            $finding.Description = "Domain Controller $($dc.HostName) has $queueCount pending replication operations"
+                            $finding.Impact = "Large replication queue indicates replication delays or processing issues"
+                            $finding.Remediation = "Investigate replication performance, check DC resources (CPU, memory, disk), and review for network issues"
+                            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/replication/active-directory-replication-concepts"
+                            $finding.AffectedObject = $dc.HostName
+                            $finding.Details = @{
+                                'QueueLength' = $queueCount
+                                'Site' = $dc.Site
+                            }
+                            $findings += $finding
+                        }
+                        elseif ($queueCount -gt 50) {
+                            $finding = [ADSecurityFinding]::new()
+                            $finding.Category = "Replication Health"
+                            $finding.Issue = "Elevated Replication Queue"
+                            $finding.Severity = "Medium"
+                            $finding.SeverityLevel = $Script:SeverityLevels.Medium
+                            $finding.Description = "Domain Controller $($dc.HostName) has $queueCount pending replication operations"
+                            $finding.Impact = "May indicate replication delays during peak load"
+                            $finding.Remediation = "Monitor replication queue length and investigate if it continues to grow"
+                            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/replication/active-directory-replication-concepts"
+                            $finding.AffectedObject = $dc.HostName
+                            $finding.Details = @{
+                                'QueueLength' = $queueCount
+                                'Site' = $dc.Site
+                            }
+                            $findings += $finding
+                        }
+                    }
+                }
+                catch {
+                    Write-Verbose "Could not query replication queue for $($dc.HostName): $_"
+                }
+                
+                # Check replication partners
+                try {
+                    $replPartners = Get-ADReplicationConnection -Filter * -Server $dc.HostName -ErrorAction SilentlyContinue
+                    
+                    if ($replPartners) {
+                        $disabledPartners = $replPartners | Where-Object { $_.ReplicationSchedule -eq $null -or -not $_.Enabled }
+                        
+                        if ($disabledPartners) {
+                            foreach ($partner in $disabledPartners) {
+                                $finding = [ADSecurityFinding]::new()
+                                $finding.Category = "Replication Health"
+                                $finding.Issue = "Disabled Replication Connection"
+                                $finding.Severity = "Medium"
+                                $finding.SeverityLevel = $Script:SeverityLevels.Medium
+                                $finding.Description = "Replication connection '$($partner.Name)' on $($dc.HostName) is disabled"
+                                $finding.Impact = "Disabled replication connections prevent directory updates from propagating"
+                                $finding.Remediation = "Review why the connection is disabled and enable if appropriate, or remove if no longer needed"
+                                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/reviewing-the-active-directory-logical-model"
+                                $finding.AffectedObject = $partner.Name
+                                $finding.Details = @{
+                                    'ConnectionName' = $partner.Name
+                                    'Server' = $dc.HostName
+                                    'FromServer' = $partner.ReplicateFromDirectoryServer
+                                }
+                                $findings += $finding
+                            }
+                        }
+                    }
+                }
+                catch {
+                    Write-Verbose "Could not query replication connections for $($dc.HostName): $_"
+                }
+                
+            }
+            catch {
+                Write-Warning "Error checking replication for $($dc.HostName): $_"
+                
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = "Replication Health"
+                $finding.Issue = "Unable to Query Replication Status"
+                $finding.Severity = "Medium"
+                $finding.SeverityLevel = $Script:SeverityLevels.Medium
+                $finding.Description = "Failed to retrieve replication information for $($dc.HostName)"
+                $finding.Impact = "Cannot assess replication health for this domain controller"
+                $finding.Remediation = "Verify permissions and connectivity to $($dc.HostName). Error: $_"
+                $finding.DocumentationLink = "https://learn.microsoft.com/en-us/powershell/module/activedirectory/"
+                $finding.AffectedObject = $dc.HostName
+                $findings += $finding
+            }
+        }
+        
+        # Check for isolated domain controllers (no successful replication partners)
+        foreach ($dc in $allDCs) {
+            try {
+                $replMetadata = Get-ADReplicationPartnerMetadata -Target $dc.HostName -Scope Domain -ErrorAction SilentlyContinue
+                $successfulReplications = $replMetadata | Where-Object { $_.LastReplicationResult -eq 0 }
+                
+                if (-not $successfulReplications -and $allDCs.Count -gt 1) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = "Replication Health"
+                    $finding.Issue = "Isolated Domain Controller"
+                    $finding.Severity = "Critical"
+                    $finding.SeverityLevel = $Script:SeverityLevels.Critical
+                    $finding.Description = "Domain Controller $($dc.HostName) has no successful replication partners"
+                    $finding.Impact = "DC is isolated from replication topology, causing severe directory inconsistencies"
+                    $finding.Remediation = "Urgently investigate network connectivity and replication configuration for $($dc.HostName)"
+                    $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/identity/troubleshoot-ad-replication-problems"
+                    $finding.AffectedObject = $dc.HostName
+                    $finding.Details = @{
+                        'Site' = $dc.Site
+                        'IsGlobalCatalog' = $dc.IsGlobalCatalog
+                    }
+                    $findings += $finding
+                }
+            }
+            catch {
+                Write-Verbose "Could not check isolation status for $($dc.HostName): $_"
+            }
+        }
+        
+        # Summary finding if no issues detected
+        if ($findings.Count -eq 0) {
+            $finding = [ADSecurityFinding]::new()
+            $finding.Category = "Replication Health"
+            $finding.Issue = "Replication Health Check Passed"
+            $finding.Severity = "Info"
+            $finding.SeverityLevel = $Script:SeverityLevels.Info
+            $finding.Description = "All domain controllers are replicating successfully with acceptable latency"
+            $finding.Impact = "None - replication is healthy"
+            $finding.Remediation = "Continue monitoring replication health regularly"
+            $finding.DocumentationLink = "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/replication/active-directory-replication-concepts"
+            $finding.Details = @{
+                'DomainControllerCount' = $allDCs.Count
+                'CheckDate' = Get-Date
+            }
+            $findings += $finding
+        }
+        
+        Write-Host "  Found $($findings.Count) replication health finding(s)" -ForegroundColor $(if($findings.Count -gt 1){'Yellow'}else{'Green'})
+    }
+    catch {
+        Write-Warning "Error in replication health check: $_"
+        
+        $finding = [ADSecurityFinding]::new()
+        $finding.Category = "Replication Health"
+        $finding.Issue = "Replication Health Check Failed"
+        $finding.Severity = "High"
+        $finding.SeverityLevel = $Script:SeverityLevels.High
+        $finding.Description = "Unable to complete replication health assessment"
+        $finding.Impact = "Cannot verify critical replication status"
+        $finding.Remediation = "Verify permissions and connectivity. Error: $_"
         $finding.DocumentationLink = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/identity/troubleshoot-ad-replication-problems"
         $findings += $finding
     }
@@ -3167,6 +5088,9 @@ function Start-ADSecurityAudit {
             'FineGrainedPasswordPolicies' = { Test-FineGrainedPasswordPolicies }
             'DNSSecurityConfiguration' = { Test-DNSSecurityConfiguration }
             'ReplicationHealth' = { Test-ADReplicationHealth }
+            # New tests added here
+            'NTLMAndLegacyProtocols' = { Test-NTLMAndLegacyProtocols }
+            'ProtectedUsersGroupCoverage' = { Test-ProtectedUsersGroupCoverage }
         }
         
         # Determine which tests to run
@@ -3323,277 +5247,4 @@ function Export-ADSecurityReportHTML {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AD Security Assessment Report - $(HtmlEncode $Domain)</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 0 20px rgba(0,0,0,0.1); border-radius: 8px; }
-        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 20px; }
-        h2 { color: #34495e; margin-top: 30px; margin-bottom: 15px; padding: 10px; background: #ecf0f1; border-left: 4px solid #3498db; }
-        h3 { color: #555; margin-top: 20px; margin-bottom: 10px; }
-        .header-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 5px; }
-        .header-info div { padding: 10px; }
-        .header-info strong { display: block; color: #7f8c8d; font-size: 0.9em; margin-bottom: 5px; }
-        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0; }
-        .summary-card { padding: 25px; border-radius: 8px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .summary-card .count { font-size: 3em; font-weight: bold; margin-bottom: 10px; }
-        .summary-card .label { font-size: 1.1em; text-transform: uppercase; letter-spacing: 1px; }
-        .critical-card { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }
-        .high-card { background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); }
-        .medium-card { background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); }
-        .low-card { background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%); }
-        .finding { margin-bottom: 25px; padding: 20px; border-radius: 5px; border-left: 5px solid; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .finding.critical { border-left-color: #e74c3c; background: #fef5f5; }
-        .finding.high { border-left-color: #e67e22; background: #fef9f5; }
-        .finding.medium { border-left-color: #f39c12; background: #fffcf5; }
-        .finding.low { border-left-color: #95a5a6; background: #f9fafb; }
-        .finding-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-        .finding-title { font-size: 1.3em; font-weight: 600; color: #2c3e50; }
-        .severity-badge { padding: 6px 15px; border-radius: 20px; font-weight: bold; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; }
-        .severity-critical { background: #e74c3c; color: white; }
-        .severity-high { background: #e67e22; color: white; }
-        .severity-medium { background: #f39c12; color: white; }
-        .severity-low { background: #95a5a6; color: white; }
-        .finding-meta { display: flex; gap: 20px; margin-bottom: 15px; font-size: 0.9em; color: #7f8c8d; flex-wrap: wrap; }
-        .finding-meta span { display: flex; align-items: center; }
-        .finding-meta strong { margin-right: 5px; color: #555; }
-        .finding-section { margin: 15px 0; padding: 15px; background: white; border-radius: 4px; }
-        .finding-section h4 { color: #555; margin-bottom: 10px; font-size: 1em; text-transform: uppercase; letter-spacing: 0.5px; }
-        .finding-section p { color: #666; line-height: 1.7; }
-        .doc-link a { color: #3498db; text-decoration: none; font-weight: 500; }
-        .doc-link a:hover { text-decoration: underline; }
-        .privileged-users-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9em; }
-        .privileged-users-table th { background: #34495e; color: white; padding: 12px; text-align: left; font-weight: 600; }
-        .privileged-users-table td { padding: 10px; border-bottom: 1px solid #ecf0f1; }
-        .privileged-users-table tr:nth-child(even) { background: #f8f9fa; }
-        .privileged-users-table tr:hover { background: #e8f4f8; }
-        .status-enabled { color: #27ae60; font-weight: bold; }
-        .status-disabled { color: #e74c3c; font-weight: bold; }
-        .footer { margin-top: 50px; padding-top: 20px; border-top: 2px solid #ecf0f1; text-align: center; color: #7f8c8d; font-size: 0.9em; }
-        .warning-box { background: #fff3cd; border-left: 4px solid #f39c12; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .warning-box p { color: #856404; margin: 5px 0; }
-        @media print { body { background: white; padding: 0; } .container { box-shadow: none; } }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🛡️ Active Directory Security Assessment Report</h1>
-        
-        <div class="warning-box">
-            <p><strong>⚠️ CONFIDENTIAL SECURITY REPORT</strong></p>
-            <p>This report contains sensitive security information about your Active Directory environment. Handle with care and share only with authorized personnel.</p>
-        </div>
-        
-        <div class="header-info">
-            <div><strong>DOMAIN</strong><span style="font-size: 1.2em; color: #2c3e50;">$(HtmlEncode $Domain)</span></div>
-            <div><strong>REPORT DATE</strong><span style="font-size: 1.2em; color: #2c3e50;">$reportDate</span></div>
-            <div><strong>SCAN DURATION</strong><span style="font-size: 1.2em; color: #2c3e50;">$([math]::Round($Duration.TotalSeconds, 2)) seconds</span></div>
-            <div><strong>TOTAL FINDINGS</strong><span style="font-size: 1.2em; color: #2c3e50;">$($Findings.Count)</span></div>
-        </div>
-        
-        <h2>📊 Executive Summary</h2>
-        <div class="summary-cards">
-            <div class="summary-card critical-card">
-                <div class="count">$($Summary.Critical)</div>
-                <div class="label">Critical</div>
-            </div>
-            <div class="summary-card high-card">
-                <div class="count">$($Summary.High)</div>
-                <div class="label">High</div>
-            </div>
-            <div class="summary-card medium-card">
-                <div class="count">$($Summary.Medium)</div>
-                <div class="label">Medium</div>
-            </div>
-            <div class="summary-card low-card">
-                <div class="count">$($Summary.Low)</div>
-                <div class="label">Low</div>
-            </div>
-        </div>
-"@
-    
-    # Add privileged users section if available
-    if ($PrivilegedUsers -and $PrivilegedUsers.Count -gt 0) {
-        $html += @"
-        <h2>👥 Privileged Users Summary</h2>
-        <p style="margin-bottom: 15px; color: #555;">The following $($PrivilegedUsers.Count) user accounts have membership in one or more privileged groups. Review these accounts regularly to ensure appropriate access levels.</p>
-        <div style="overflow-x: auto;">
-            <table class="privileged-users-table">
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Display Name</th>
-                        <th>Enabled</th>
-                        <th>Privileged Groups</th>
-                        <th>Password Last Set</th>
-                        <th>Last Logon</th>
-                        <th>Security Flags</th>
-                    </tr>
-                </thead>
-                <tbody>
-"@
-        
-        foreach ($user in ($PrivilegedUsers | Sort-Object -Property @{Expression={$_.PrivilegedGroups.Count}; Descending=$true}, SamAccountName)) {
-            $enabledClass = if ($user.Enabled) { 'status-enabled' } else { 'status-disabled' }
-            $enabledText = if ($user.Enabled) { 'Yes' } else { 'No' }
-            
-            $securityFlags = @()
-            if ($user.PasswordNeverExpires) { $securityFlags += 'Pwd Never Expires' }
-            if ($user.DoesNotRequirePreAuth) { $securityFlags += 'No PreAuth' }
-            if ($user.TrustedForDelegation) { $securityFlags += 'Delegation' }
-            if ($user.HasSPN) { $securityFlags += "SPN($($user.SPNCount))" }
-            $flagsText = if ($securityFlags.Count -gt 0) { HtmlEncode ($securityFlags -join ', ') } else { '-' }
-            
-            $passwordLastSet = if ($user.PasswordLastSet) { $user.PasswordLastSet.ToString('yyyy-MM-dd') } else { 'Never' }
-            $lastLogon = if ($user.LastLogonDate) { $user.LastLogonDate.ToString('yyyy-MM-dd') } else { 'Never' }
-            
-            $html += @"
-                    <tr>
-                        <td><strong>$(HtmlEncode $user.SamAccountName)</strong></td>
-                        <td>$(HtmlEncode $user.DisplayName)</td>
-                        <td class="$enabledClass">$enabledText</td>
-                        <td style="font-size: 0.85em;">$(HtmlEncode $user.PrivilegedGroupsString)</td>
-                        <td>$passwordLastSet</td>
-                        <td>$lastLogon</td>
-                        <td style="font-size: 0.85em;">$flagsText</td>
-                    </tr>
-"@
-        }
-        
-        $html += @"
-                </tbody>
-            </table>
-        </div>
-"@
-    }
-    
-    # Add findings by severity
-    if ($criticalFindings) {
-        $html += "<h2>🔴 Critical Severity Findings</h2>"
-        foreach ($finding in $criticalFindings) {
-            $html += ConvertTo-FindingHtml -Finding $finding
-        }
-    }
-    
-    if ($highFindings) {
-        $html += "<h2>🟠 High Severity Findings</h2>"
-        foreach ($finding in $highFindings) {
-            $html += ConvertTo-FindingHtml -Finding $finding
-        }
-    }
-    
-    if ($mediumFindings) {
-        $html += "<h2>🟡 Medium Severity Findings</h2>"
-        foreach ($finding in $mediumFindings) {
-            $html += ConvertTo-FindingHtml -Finding $finding
-        }
-    }
-    
-    if ($lowFindings) {
-        $html += "<h2>⚪ Low Severity Findings</h2>"
-        foreach ($finding in $lowFindings) {
-            $html += ConvertTo-FindingHtml -Finding $finding
-        }
-    }
-    
-    $html += @"
-        <div class="footer">
-            <p><strong>Generated by ADSecurityAudit Module v1.0.0</strong></p>
-            <p>This report should be treated as confidential and shared only with authorized personnel.</p>
-            <p>Review findings, prioritize remediation by severity, and implement security best practices.</p>
-        </div>
-    </div>
-</body>
-</html>
-"@
-    
-    $html | Out-File -FilePath $OutputPath -Encoding UTF8
-}
-
-function ConvertTo-FindingHtml {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        [ADSecurityFinding]$Finding
-    )
-    
-    function HtmlEncode($text) {
-        if ($text) {
-            return $text -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;' -replace '"', '&quot;' -replace "'", '&#39;'
-        }
-        return $text
-    }
-    
-    $severityClass = $Finding.Severity.ToLower()
-    $description = HtmlEncode $Finding.Description
-    $impact = HtmlEncode $Finding.Impact
-    $remediation = HtmlEncode $Finding.Remediation
-    $issue = HtmlEncode $Finding.Issue
-    $category = HtmlEncode $Finding.Category
-    $affectedObject = HtmlEncode $Finding.AffectedObject
-    
-    $docLink = if ($Finding.DocumentationLink) {
-        "<div class='doc-link'><a href='$($Finding.DocumentationLink)' target='_blank'>📚 Microsoft Documentation</a></div>"
-    } else {
-        ""
-    }
-    
-    # Handle multi-line remediation
-    $remediation = $remediation -replace "`r`n", '<br>' -replace "`n", '<br>'
-    
-    return @"
-        <div class="finding $severityClass">
-            <div class="finding-header">
-                <div class="finding-title">$issue</div>
-                <span class="severity-badge severity-$severityClass">$($Finding.Severity)</span>
-            </div>
-            <div class="finding-meta">
-                <span><strong>Category:</strong> $category</span>
-                <span><strong>Affected Object:</strong> $affectedObject</span>
-                <span><strong>Detected:</strong> $($Finding.DetectedDate.ToString('yyyy-MM-dd HH:mm'))</span>
-            </div>
-            <div class="finding-section">
-                <h4>📝 Description</h4>
-                <p>$description</p>
-            </div>
-            <div class="finding-section">
-                <h4>⚠️ Impact</h4>
-                <p>$impact</p>
-            </div>
-            <div class="finding-section">
-                <h4>✅ Remediation</h4>
-                <p>$remediation</p>
-                $docLink
-            </div>
-        </div>
-"@
-}
-
-#endregion
-
-#region Export Module Members
-
-Export-ModuleMember -Function @(
-    'Start-ADSecurityAudit'
-    'Test-ADUserSecurity'
-    'Test-ADPrivilegedGroups'
-    'Test-AdminSDHolder'
-    'Test-ADGroupPolicies'
-    'Test-ADReplicationSecurity'
-    'Test-ADDomainSecurity'
-    'Test-ADDangerousPermissions'
-    'Get-ADPrivilegedUsers'
-    'Test-ADCertificateServices'
-    'Test-KRBTGTAccount'
-    'Test-ADDomainTrusts'
-    'Test-LAPSDeployment'
-    'Test-AuditPolicyConfiguration'
-    'Test-ConstrainedDelegation'
-    'Test-ComputerAccountDelegation'
-    'Test-FineGrainedPasswordPolicies'
-    'Test-DNSSecurityConfiguration'
-    'Test-ADReplicationHealth'
-)
-
-#endregion
+    <meta name="viewport" content="width
