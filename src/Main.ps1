@@ -40,14 +40,7 @@ function Start-ADSecurityAudit {
     }
     
     $logPath = Join-Path $ExportPath "ADSecurityAudit_Log_$timestamp.txt"
-    $transcriptStarted = $false
-    try {
-        Start-Transcript -Path $logPath -Force -ErrorAction Stop
-        $transcriptStarted = $true
-    }
-    catch {
-        Write-Warning "Failed to start transcript at $logPath. Continuing without transcript. Error: $_"
-    }
+    Start-Transcript -Path $logPath -Force
     
     try {
         $startTime = Get-Date
@@ -209,9 +202,7 @@ function Start-ADSecurityAudit {
         return $allFindings
     }
     finally {
-        if ($transcriptStarted) {
-            Stop-Transcript | Out-Null
-        }
+        Stop-Transcript
     }
 }
 

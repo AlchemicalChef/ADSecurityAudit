@@ -21,16 +21,6 @@ function Export-ADSecurityReportHTML {
     )
     
     $reportDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-
-    $outputDirectory = Split-Path -Path $OutputPath -Parent
-    if ($outputDirectory -and -not (Test-Path -Path $outputDirectory)) {
-        try {
-            New-Item -Path $outputDirectory -ItemType Directory -Force | Out-Null
-        }
-        catch {
-            throw "Unable to create report directory '$outputDirectory': $_"
-        }
-    }
     
     # Group findings by severity
     $criticalFindings = $Findings | Where-Object { $_.Severity -eq 'Critical' } | Sort-Object Category
