@@ -11,6 +11,7 @@ const CATEGORY_ICONS = {
 
 const state = {
   findings: [],
+  metadata: {},
 };
 
 function setStatus(message, tone = 'muted') {
@@ -98,6 +99,16 @@ function buildPill(text) {
   return pill;
 }
 
+function extractDetailSnippets(details) {
+  if (!details || typeof details !== 'object') return [];
+  const entries = Object.entries(details).slice(0, 2);
+  return entries.map(([key, value]) => {
+    if (Array.isArray(value)) return `${key}: ${value.slice(0, 3).join(', ')}`;
+    if (typeof value === 'boolean') return `${key}: ${value ? 'Yes' : 'No'}`;
+    return `${key}: ${value}`;
+  });
+}
+
 function renderCategoryGrid(findings) {
   const container = document.getElementById('category-grid');
   container.innerHTML = '';
@@ -152,17 +163,8 @@ function renderCategoryGrid(findings) {
     detailSnippets.forEach((snippet) => pillRow.append(buildPill(snippet)));
 
     card.append(header, stats, pillRow);
+    card.addEventListener('click', () => openModal({ title: group.category, findings: group.findings }));
     container.appendChild(card);
-  });
-}
-
-function extractDetailSnippets(details) {
-  if (!details || typeof details !== 'object') return [];
-  const entries = Object.entries(details).slice(0, 2);
-  return entries.map(([key, value]) => {
-    if (Array.isArray(value)) return `${key}: ${value.slice(0, 3).join(', ')}`;
-    if (typeof value === 'boolean') return `${key}: ${value ? 'Yes' : 'No'}`;
-    return `${key}: ${value}`;
   });
 }
 
@@ -214,16 +216,25 @@ function renderFindings(findings) {
     remediation.className = 'remediation';
     remediation.innerHTML = `<strong>Remediation:</strong> ${finding.Remediation || 'No remediation provided.'}`;
 
-    card.append(header, meta, description, impact, remediation);
+    const references = buildReferences(finding.RemediationReference || finding.References);
+
+    const button = document.createElement('button');
+    button.className = 'detail-button';
+    button.textContent = 'View details & evidence';
+    button.addEventListener('click', () => openModal(finding));
+
+    card.append(header, meta, description, impact, remediation, references, button);
     container.appendChild(card);
   });
 }
 
-function render(findings) {
+function render(findings, metadata = {}) {
   state.findings = findings;
+  state.metadata = metadata;
   renderSummary(findings);
   renderCategoryGrid(findings);
   renderFindings(findings);
+  renderMeta(metadata);
   setStatus('Audit data loaded and visualized.');
 }
 
@@ -249,6 +260,145 @@ function normalizeFindings(data) {
   return [];
 }
 
+function extractMetadata(data) {
+  if (!data || typeof data !== 'object') return {};
+  const summary = data.Summary || data.summary || {};
+  const meta = data.Metadata || data.metadata || {};
+  const stats = data.Statistics || data.statistics || {};
+  return {
+    privilegedAccounts: meta.PrivilegedAccounts || summary.PrivilegedAccounts || stats.PrivilegedAccounts || data.PrivilegedAccountsCount,
+    domainControllers: summary.DomainControllers || stats.DomainControllers || meta.DomainControllers,
+    auditGenerated: summary.Generated || data.Generated || meta.GeneratedOn,
+    staleSeamlessSso: summary.AzureAdSsoExpiredKeys || stats.AzureAdSsoExpiredKeys,
+  };
+}
+
+function renderMeta(metadata) {
+  const container = document.getElementById('meta-stats');
+  container.innerHTML = '';
+  const entries = [
+    { label: 'Privileged Accounts', value: metadata.privilegedAccounts ?? '—', hint: 'High-risk identities to lock down' },
+    { label: 'Domain Controllers', value: metadata.domainControllers ?? '—', hint: 'Visibility across replication scope' },
+    { label: 'Seamless SSO keys expired', value: metadata.staleSeamlessSso ?? '—', hint: 'Rotate AzureADSSOACC keys per guidance' },
+    { label: 'Audit generated', value: metadata.auditGenerated ? formatDate(metadata.auditGenerated) : '—', hint: 'Report timestamp' },
+  ];
+
+  entries.forEach((entry) => {
+    const card = document.createElement('div');
+    card.className = 'meta-stat-card';
+    card.innerHTML = `
+      <span class="label">${entry.label}</span>
+      <span class="value">${entry.value}</span>
+      <span class="hint">${entry.hint}</span>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function buildReferences(refs) {
+  if (!refs) {
+    const wrapper = document.createElement('p');
+    wrapper.className = 'references';
+    wrapper.innerHTML = '<strong>References:</strong> Not provided';
+    return wrapper;
+  }
+
+  const list = Array.isArray(refs) ? refs : [refs];
+  const wrapper = document.createElement('div');
+  wrapper.className = 'references';
+  const ul = document.createElement('ul');
+  ul.className = 'reference-list';
+  list.forEach((ref) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<a href="${ref}" target="_blank" rel="noreferrer noopener">${ref}</a>`;
+    ul.appendChild(li);
+  });
+  wrapper.innerHTML = '<strong>References:</strong>';
+  wrapper.appendChild(ul);
+  return wrapper;
+}
+
+function buildDetailsGrid(details = {}) {
+  const grid = document.createElement('div');
+  grid.className = 'detail-grid';
+  const entries = Object.entries(details);
+  if (!entries.length) {
+    grid.textContent = 'No additional detail provided.';
+    return grid;
+  }
+
+  entries.forEach(([key, value]) => {
+    const pill = document.createElement('span');
+    pill.className = 'pill';
+    pill.innerHTML = `<strong>${key}:</strong> ${Array.isArray(value) ? value.join(', ') : value}`;
+    grid.appendChild(pill);
+  });
+  return grid;
+}
+
+function openModal(payload) {
+  const modal = document.getElementById('modal');
+  const body = document.getElementById('modal-body');
+  const isCategory = payload.findings;
+  body.innerHTML = '';
+
+  if (isCategory) {
+    const title = document.createElement('h2');
+    title.textContent = payload.title;
+    body.appendChild(title);
+    payload.findings.forEach((finding) => body.appendChild(buildModalFinding(finding)));
+  } else {
+    body.appendChild(buildModalFinding(payload));
+  }
+
+  modal.hidden = false;
+}
+
+function buildModalFinding(finding) {
+  const wrapper = document.createElement('article');
+  wrapper.className = 'finding-card';
+
+  const header = document.createElement('div');
+  header.className = 'finding-header';
+  header.innerHTML = `${getCategoryIcon(finding.Category)} <strong>${finding.Issue}</strong>`;
+
+  const severity = document.createElement('span');
+  severity.className = `severity-pill severity-${(finding.Severity || 'Low').toLowerCase()}`;
+  severity.textContent = finding.Severity || 'Low';
+
+  header.appendChild(severity);
+
+  const meta = document.createElement('div');
+  meta.className = 'meta-row';
+  meta.innerHTML = `
+    <span class="meta-chip">Category: ${finding.Category}</span>
+    <span class="meta-chip">Affected: ${finding.AffectedObject || 'Unknown'}</span>
+    <span class="meta-chip">Detected: ${formatDate(finding.DetectedDate)}</span>
+  `;
+
+  const description = document.createElement('p');
+  description.className = 'description';
+  description.textContent = finding.Description || 'No description provided.';
+
+  const impact = document.createElement('p');
+  impact.className = 'impact';
+  impact.innerHTML = `<strong>Impact:</strong> ${finding.Impact || 'No impact provided.'}`;
+
+  const remediation = document.createElement('p');
+  remediation.className = 'remediation';
+  remediation.innerHTML = `<strong>Remediation:</strong> ${finding.Remediation || 'No remediation provided.'}`;
+
+  const references = buildReferences(finding.RemediationReference || finding.References);
+  const details = buildDetailsGrid(finding.Details);
+
+  wrapper.append(header, meta, description, impact, remediation, references, details);
+  return wrapper;
+}
+
+function closeModal() {
+  document.getElementById('modal').hidden = true;
+}
+
 function reportIngestionResult(findings, sourceLabel = 'data source') {
   if (!findings.length) {
     setStatus(`No findings detected in the ${sourceLabel}. Confirm it includes audit results.`, 'error');
@@ -265,9 +415,7 @@ async function loadRemoteJson(path) {
     setStatus('Loading data...', 'muted');
     const response = await fetch(path);
     const data = await response.json();
-    const findings = normalizeFindings(data);
-    render(findings);
-    reportIngestionResult(findings, 'sample file');
+    ingestData(data, 'sample file');
   } catch (error) {
     console.error(error);
     setStatus('Unable to load JSON. Please check the file path and try again.', 'error');
@@ -282,9 +430,7 @@ function handleFileUpload(event) {
   reader.onload = (e) => {
     try {
       const parsed = JSON.parse(e.target.result);
-      const findings = normalizeFindings(parsed);
-      render(findings);
-      reportIngestionResult(findings, `uploaded file: ${file.name}`);
+      ingestData(parsed, `uploaded file: ${file.name}`);
     } catch (error) {
       console.error(error);
       setStatus('Could not parse the uploaded JSON file.', 'error');
@@ -293,9 +439,58 @@ function handleFileUpload(event) {
   reader.readAsText(file);
 }
 
+function ingestData(parsed, sourceLabel) {
+  const findings = normalizeFindings(parsed);
+  const metadata = extractMetadata(parsed);
+  render(findings, metadata);
+  reportIngestionResult(findings, sourceLabel);
+}
+
+async function handleUrlLoad() {
+  const urlInput = document.getElementById('remote-url');
+  const url = urlInput.value.trim();
+  if (!url) {
+    setStatus('Enter a URL to load JSON from.', 'error');
+    return;
+  }
+
+  try {
+    setStatus('Fetching JSON from URL...', 'muted');
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const parsed = await response.json();
+    ingestData(parsed, `remote URL: ${url}`);
+  } catch (error) {
+    console.error(error);
+    setStatus('Unable to fetch or parse JSON from the provided URL.', 'error');
+  }
+}
+
+function handlePastedJson() {
+  const textarea = document.getElementById('paste-json');
+  const text = textarea.value.trim();
+  if (!text) {
+    setStatus('Paste audit JSON into the field to load it.', 'error');
+    return;
+  }
+  try {
+    const parsed = JSON.parse(text);
+    ingestData(parsed, 'pasted JSON');
+  } catch (error) {
+    console.error(error);
+    setStatus('Pasted content is not valid JSON.', 'error');
+  }
+}
+
 function boot() {
   document.getElementById('file-input').addEventListener('change', handleFileUpload);
   document.getElementById('load-sample').addEventListener('click', () => loadRemoteJson('./sample-data/audit-report.json'));
+  document.getElementById('load-url').addEventListener('click', handleUrlLoad);
+  document.getElementById('load-pasted').addEventListener('click', handlePastedJson);
+  document.getElementById('close-modal').addEventListener('click', closeModal);
+  document.getElementById('modal').addEventListener('click', (e) => {
+    if (e.target.id === 'modal') closeModal();
+  });
   loadRemoteJson('./sample-data/audit-report.json');
 }
 
