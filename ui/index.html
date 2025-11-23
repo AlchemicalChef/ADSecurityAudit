@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AD Security Audit Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">AD Security Audit</p>
+          <h1>Visualize domain security health instantly</h1>
+          <p class="lede">
+            Upload your JSON audit output to explore domain security readiness across delegation,
+            password governance, DNS configuration, and other critical controls. Tap into each
+            finding for remediation guidance with vendor references.
+          </p>
+          <div class="hero-badges">
+            <span class="badge">Computer account delegation</span>
+            <span class="badge">Fine-grained password policies</span>
+            <span class="badge">DNS security posture</span>
+            <span class="badge">Privileged identity hygiene</span>
+          </div>
+          <p id="status-message" class="muted">Waiting for data…</p>
+        </div>
+        <div class="hero-actions">
+          <label class="file-upload">
+            <input type="file" id="file-input" accept="application/json" />
+            <span>📁 Upload audit JSON</span>
+          </label>
+          <button id="load-sample" class="ghost">Load sample report</button>
+          <div class="input-row">
+            <input id="remote-url" type="url" placeholder="https://example.com/audit.json" />
+            <button id="load-url" class="ghost">Load from URL</button>
+          </div>
+          <label class="paste-area">
+            <span>Paste JSON</span>
+            <textarea id="paste-json" rows="4" placeholder="Paste audit JSON text here"></textarea>
+            <button id="load-pasted" type="button">Load pasted JSON</button>
+          </label>
+          <div class="helper-text">Uploads stay in your browser; no data leaves your device.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Overall health</p>
+            <h2>Severity distribution & metrics</h2>
+            <p class="muted">Track critical and high-risk items, privileged account counts, and audit freshness.</p>
+          </div>
+          <div class="meta-stats" id="meta-stats"></div>
+        </div>
+        <div class="summary-grid">
+          <article class="summary-card tone-critical">
+            <div class="card-top">
+              <div>
+                <p class="label">Critical</p>
+                <p class="count" id="critical-count">0</p>
+              </div>
+              <span class="icon">⚠️</span>
+            </div>
+            <p class="helper">Issues that need immediate attention.</p>
+            <div class="progress"><span id="critical-progress"></span></div>
+          </article>
+          <article class="summary-card tone-high">
+            <div class="card-top">
+              <div>
+                <p class="label">High</p>
+                <p class="count" id="high-count">0</p>
+              </div>
+              <span class="icon">🚨</span>
+            </div>
+            <p class="helper">Elevated risk requiring near-term remediation.</p>
+            <div class="progress"><span id="high-progress"></span></div>
+          </article>
+          <article class="summary-card tone-medium">
+            <div class="card-top">
+              <div>
+                <p class="label">Medium</p>
+                <p class="count" id="medium-count">0</p>
+              </div>
+              <span class="icon">📋</span>
+            </div>
+            <p class="helper">Configuration gaps to plan into backlog.</p>
+            <div class="progress"><span id="medium-progress"></span></div>
+          </article>
+          <article class="summary-card tone-low">
+            <div class="card-top">
+              <div>
+                <p class="label">Low</p>
+                <p class="count" id="low-count">0</p>
+              </div>
+              <span class="icon">ℹ️</span>
+            </div>
+            <p class="helper">Informational items for visibility.</p>
+            <div class="progress"><span id="low-progress"></span></div>
+          </article>
+        </div>
+        <div class="meta-row-bar">
+          <span id="total-count" class="pill">0 findings</span>
+          <span id="last-updated" class="pill">Waiting for data…</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Category coverage</p>
+            <h2>Delegation, password policies, DNS, and more</h2>
+            <p class="muted">Review health by control family with quick access to detailed evidence.</p>
+          </div>
+        </div>
+        <div id="category-grid" class="category-grid">Load an audit JSON file to see category health.</div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">All findings</p>
+            <h2>Tap into remediation details and references</h2>
+            <p class="muted">Each finding includes impacted objects, severity, impact, remediation steps, and linked documentation.</p>
+          </div>
+        </div>
+        <div id="findings-list" class="finding-list">No findings to display yet.</div>
+      </section>
+    </main>
+
+    <div id="modal" class="modal" hidden>
+      <div class="modal-content">
+        <button class="close" id="close-modal" aria-label="Close details">✕</button>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+
+    <script src="./assets/app.js"></script>
+  </body>
+</html>

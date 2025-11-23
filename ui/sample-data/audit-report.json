@@ -1,0 +1,104 @@
+{
+  "Summary": {
+    "Generated": "2024-03-18T10:42:00Z",
+    "PrivilegedAccounts": 42,
+    "DomainControllers": 6,
+    "AzureAdSsoExpiredKeys": 1
+  },
+  "Findings": [
+    {
+      "Issue": "Computer account delegation allows unconstrained Kerberos usage",
+      "Category": "Computer Account Delegation",
+      "Severity": "Critical",
+      "Description": "One or more computer accounts permit unconstrained delegation, enabling ticket theft.",
+      "Impact": "Attackers can impersonate any user after compromising a delegated host.",
+      "Remediation": "Remove unconstrained delegation and scope to specific services using constrained delegation.",
+      "RemediationReference": [
+        "https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-constrained-delegation-overview",
+        "https://attack.mitre.org/techniques/T1558/003/"
+      ],
+      "AffectedObject": "SERVER01$",
+      "DetectedDate": "2024-03-15T08:00:00Z",
+      "Details": {
+        "DelegationType": "Unconstrained",
+        "SPNs": ["cifs/server01.contoso.com", "rpc/server01.contoso.com"],
+        "OU": "Servers/Production"
+      }
+    },
+    {
+      "Issue": "Fine-grained password policy permits weak passwords",
+      "Category": "Fine-Grained Password Policies",
+      "Severity": "High",
+      "Description": "Minimum length below 12 characters and no complexity requirement detected.",
+      "Impact": "Reduced resistance to password spraying and credential stuffing.",
+      "Remediation": "Increase minimum length to 14+ characters and enable complexity per Microsoft guidance.",
+      "RemediationReference": [
+        "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/password-policy",
+        "https://aka.ms/secpasswords"
+      ],
+      "AffectedObject": "FGPP-RemoteWorkers",
+      "DetectedDate": "2024-03-16T13:20:00Z",
+      "Details": {
+        "MinLength": 8,
+        "ComplexityEnabled": false,
+        "AppliesTo": ["RemoteWorkers", "Vendors"]
+      }
+    },
+    {
+      "Issue": "DNS security settings permit anonymous zone transfers",
+      "Category": "DNS Security Configuration",
+      "Severity": "High",
+      "Description": "Primary DNS zones allow AXFR to any host without restriction.",
+      "Impact": "Adversaries can enumerate sensitive hostnames and service records.",
+      "Remediation": "Disable zone transfers to unauthenticated hosts and restrict to authorized secondaries.",
+      "RemediationReference": [
+        "https://learn.microsoft.com/en-us/windows-server/networking/dns/zone-transfers",
+        "https://owasp.org/www-community/vulnerabilities/DNS_Zone_Transfer"
+      ],
+      "AffectedObject": "contoso.com",
+      "DetectedDate": "2024-03-14T17:45:00Z",
+      "Details": {
+        "TransferScope": "AnyHost",
+        "Zones": ["contoso.com", "corp.contoso.com"]
+      }
+    },
+    {
+      "Issue": "Privileged accounts exceed defined threshold",
+      "Category": "Privileged Identity Hygiene",
+      "Severity": "Medium",
+      "Description": "Privileged group membership count is above the policy limit of 30 accounts.",
+      "Impact": "Increased blast radius for credential theft or token misuse.",
+      "Remediation": "Review privileged roles, remove stale accounts, and implement JIT elevation.",
+      "RemediationReference": [
+        "https://aka.ms/privilegedaccessdeployment",
+        "https://learn.microsoft.com/en-us/azure/active-directory/roles/security-planning"
+      ],
+      "AffectedObject": "Domain Admins",
+      "DetectedDate": "2024-03-12T10:05:00Z",
+      "Details": {
+        "CurrentCount": 42,
+        "Threshold": 30,
+        "NotableAccounts": ["svc-backup", "svc-legacy", "temp-admin"]
+      }
+    },
+    {
+      "Issue": "AzureADSSOACC Kerberos key older than 45 days",
+      "Category": "Domain Security",
+      "Severity": "High",
+      "Description": "Seamless SSO computer account keys have not been rotated within the 30-day window recommended by Microsoft.",
+      "Impact": "Expired AzureADSSOACC keys weaken Kerberos SSO integrity.",
+      "Remediation": "Rotate AzureADSSOACC keys via Azure AD Connect or PowerShell to maintain SSO integrity.",
+      "RemediationReference": [
+        "https://learn.microsoft.com/en-us/azure/active-directory/hybrid/how-to-connect-sso-faq",
+        "https://learn.microsoft.com/en-us/azure/active-directory/hybrid/tshoot-connect-sso"
+      ],
+      "AffectedObject": "AZUREADSSOACC$",
+      "DetectedDate": "2024-03-11T09:00:00Z",
+      "Details": {
+        "KeyAgeDays": 45,
+        "RecommendedRotationDays": 30,
+        "LastRotation": "2024-01-26"
+      }
+    }
+  ]
+}
