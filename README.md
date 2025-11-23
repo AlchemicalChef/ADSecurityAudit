@@ -13,7 +13,7 @@ A comprehensive PowerShell module for identifying misconfigurations and security
 - **AdminSDHolder Security**: Scans for risky permissions and unauthorized modifications that could lead to persistent compromise
 - **Group Policy Assessment**: Detects over-permissioned GPOs, insecure SYSVOL permissions, and mislinked policies
 - **DCSync Detection**: Identifies unauthorized replication permissions that enable credential dumping attacks
-- **Domain Security Settings**: Evaluates password policies, functional levels, and legacy systems
+- **Domain Security Settings**: Evaluates password policies, functional levels, legacy systems, and AzureADSSOACC rotation compliance
 - **Dangerous Permissions**: Locates overly permissive rights on critical AD objects
 
 ### Advanced Security Features
@@ -37,15 +37,19 @@ A comprehensive PowerShell module for identifying misconfigurations and security
 ## Installation
 
 1. Copy the module to your PowerShell modules directory:
-powershell
+```powershell
 $modulePath = "$env:ProgramFiles\WindowsPowerShell\Modules\ADSecurityAudit"
 New-Item -Path $modulePath -ItemType Directory -Force
-Copy-Item -Path ".\ADSecurityAudit-Enhanced.psm1" -Destination "$modulePath\ADSecurityAudit.psm1"
+Copy-Item -Path ".\ADSecurityAudit.psd1" -Destination "$modulePath\ADSecurityAudit.psd1"
+Copy-Item -Path ".\ADSecurityAudit.psm1" -Destination "$modulePath\ADSecurityAudit.psm1"
+Copy-Item -Path ".\src" -Destination "$modulePath\src" -Recurse -Force
+```
 
 
 2. Import the module:
-powershell
+```powershell
 Import-Module ADSecurityAudit
+```
 
 
 ## Usage
