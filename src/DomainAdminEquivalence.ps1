@@ -11,7 +11,7 @@ function Test-ADDomainAdminEquivalence {
         $domainSID = $domain.DomainSID.Value
         $netBIOSName = $domain.NetBIOSName
         $configContext = (Get-ADRootDSE).ConfigurationNamingContext
-
+        # This is based on the TrustedSec/Bloodhound/SpectreOps research, im just implementing it here. 
         # Explicitly trusted principals that normally require broad control
         $legitimatePrincipals = @(
             'NT AUTHORITY\SYSTEM',
@@ -284,7 +284,7 @@ function Test-ADDomainAdminEquivalence {
                 # Risk 1: Same Domain SID (Illegal in standard migration)
                 if ($sidStr -like "$domainSID*") {
                     $findings += [PSCustomObject]@{
-                        Category       = 'TrustedSec Privilege Escalation'
+                        Category       = 'Admin Equivalence'
                         Issue          = 'SID History Injection (Same Domain)'
                         Severity       = 'Critical'
                         AffectedObject = $user.SamAccountName
@@ -301,7 +301,7 @@ function Test-ADDomainAdminEquivalence {
                 # Risk 2: Privileged RID (500=Admin, 512=DomainAdmins, 519=EnterpriseAdmins)
                 if ($sidStr -match '-(500|512|519)$') {
                     $findings += [PSCustomObject]@{
-                        Category       = 'TrustedSec Privilege Escalation'
+                        Category       = 'Admin Equivalence'
                         Issue          = 'Privileged SID in History'
                         Severity       = 'Critical'
                         AffectedObject = $user.SamAccountName
@@ -383,7 +383,7 @@ function Test-ADDomainAdminEquivalence {
             }
         }
 
-        Write-Verbose "Performing TrustedSec-focused AdminSDHolder ACL Analysis..."
+        Write-Verbose "Performing AdminSDHolder ACL Analysis..."
         $adminSdHolder = Get-ADObject -Identity "CN=AdminSDHolder,CN=System,$domainDN" -Properties nTSecurityDescriptor -ErrorAction SilentlyContinue
         if ($adminSdHolder) {
             foreach ($ace in $adminSdHolder.nTSecurityDescriptor.Access) {
