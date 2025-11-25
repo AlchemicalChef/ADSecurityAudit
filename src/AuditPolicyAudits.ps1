@@ -13,54 +13,159 @@ function Test-AuditPolicyConfiguration {
         
         Write-Verbose "Checking audit policies on $($domainControllers.Count) domain controller(s)..."
         
-        # Critical audit policies that should be enabled
-        $requiredAuditPolicies = @{
-            'Account Logon' = @('Audit Credential Validation')
-            'Account Management' = @('Audit User Account Management', 'Audit Security Group Management')
-            'DS Access' = @('Audit Directory Service Access', 'Audit Directory Service Changes')
-            'Logon/Logoff' = @('Audit Logon', 'Audit Logoff', 'Audit Account Lockout')
-            'Object Access' = @('Audit File Share', 'Audit File System')
-            'Policy Change' = @('Audit Policy Change', 'Audit Authentication Policy Change')
-            'Privilege Use' = @('Audit Sensitive Privilege Use')
-            'System' = @('Audit Security State Change', 'Audit Security System Extension')
+        # Critical audit subcategories that should be enabled (Success and Failure)
+        $criticalAuditCategories = @{
+            # Account Logon
+            'Credential Validation' = @{ Category = 'Account Logon'; MinimumSetting = 'Success and Failure' }
+            'Kerberos Authentication Service' = @{ Category = 'Account Logon'; MinimumSetting = 'Success and Failure' }
+            'Kerberos Service Ticket Operations' = @{ Category = 'Account Logon'; MinimumSetting = 'Success and Failure' }
+            
+            # Account Management
+            'User Account Management' = @{ Category = 'Account Management'; MinimumSetting = 'Success and Failure' }
+            'Security Group Management' = @{ Category = 'Account Management'; MinimumSetting = 'Success and Failure' }
+            'Computer Account Management' = @{ Category = 'Account Management'; MinimumSetting = 'Success and Failure' }
+            
+            # DS Access
+            'Directory Service Access' = @{ Category = 'DS Access'; MinimumSetting = 'Success and Failure' }
+            'Directory Service Changes' = @{ Category = 'DS Access'; MinimumSetting = 'Success and Failure' }
+            
+            # Logon/Logoff
+            'Logon' = @{ Category = 'Logon/Logoff'; MinimumSetting = 'Success and Failure' }
+            'Logoff' = @{ Category = 'Logon/Logoff'; MinimumSetting = 'Success' }
+            'Account Lockout' = @{ Category = 'Logon/Logoff'; MinimumSetting = 'Failure' }
+            'Special Logon' = @{ Category = 'Logon/Logoff'; MinimumSetting = 'Success' }
+            
+            # Policy Change
+            'Audit Policy Change' = @{ Category = 'Policy Change'; MinimumSetting = 'Success and Failure' }
+            'Authentication Policy Change' = @{ Category = 'Policy Change'; MinimumSetting = 'Success' }
+            
+            # Privilege Use
+            'Sensitive Privilege Use' = @{ Category = 'Privilege Use'; MinimumSetting = 'Success and Failure' }
+            
+            # System
+            'Security State Change' = @{ Category = 'System'; MinimumSetting = 'Success' }
+            'Security System Extension' = @{ Category = 'System'; MinimumSetting = 'Success and Failure' }
         }
         
+        # Try to check audit policy on DCs
         foreach ($dc in $domainControllers) {
+            $dcName = $dc.HostName
+            $auditPolicyChecked = $false
+            $missingPolicies = @()
+            
             try {
-                # Check if we can query the DC (in a real scenario, you'd use Invoke-Command)
-                # For this script, we'll check local/default domain policy
+                # Try to run auditpol remotely
+                Write-Verbose "Checking audit policies on $dcName..."
                 
+                $auditpolOutput = Invoke-Command -ComputerName $dcName -ScriptBlock {
+                    $output = auditpol /get /category:* 2>&1
+                    return $output
+                } -ErrorAction Stop
+                
+                $auditPolicyChecked = $true
+                
+                # Parse auditpol output
+                $currentSubcategory = $null
+                foreach ($line in $auditpolOutput) {
+                    $lineStr = $line.ToString().Trim()
+                    
+                    # Look for subcategory settings
+                    foreach ($subcategory in $criticalAuditCategories.Keys) {
+                        if ($lineStr -match "^\s*$([regex]::Escape($subcategory))\s+(.+)$") {
+                            $setting = $Matches[1].Trim()
+                            $required = $criticalAuditCategories[$subcategory].MinimumSetting
+                            
+                            # Check if the setting meets minimum requirements
+                            $isCompliant = $false
+                            
+                            switch ($required) {
+                                'Success and Failure' {
+                                    $isCompliant = ($setting -match 'Success and Failure')
+                                }
+                                'Success' {
+                                    $isCompliant = ($setting -match 'Success')
+                                }
+                                'Failure' {
+                                    $isCompliant = ($setting -match 'Failure')
+                                }
+                            }
+                            
+                            if (-not $isCompliant -and $setting -notmatch 'Success and Failure') {
+                                $missingPolicies += @{
+                                    Subcategory = $subcategory
+                                    Category = $criticalAuditCategories[$subcategory].Category
+                                    CurrentSetting = $setting
+                                    RequiredSetting = $required
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                # Create findings for missing policies
+                if ($missingPolicies.Count -gt 0) {
+                    $finding = [ADSecurityFinding]::new()
+                    $finding.Category = 'Audit Policy'
+                    $finding.Issue = 'Insufficient Audit Policy Configuration'
+                    $finding.Severity = 'High'
+                    $finding.SeverityLevel = 3
+                    $finding.AffectedObject = $dcName
+                    $finding.Description = "Domain Controller '$dcName' has $($missingPolicies.Count) audit subcategories not configured to recommended settings."
+                    $finding.Impact = "Without proper audit policies, security incidents cannot be detected or investigated effectively. Critical events may go unlogged."
+                    
+                    $remediationList = $missingPolicies | ForEach-Object {
+                        "- $($_.Subcategory): Current='$($_.CurrentSetting)', Required='$($_.RequiredSetting)'"
+                    }
+                    
+                    $finding.Remediation = @"
+Configure the following audit policies via Group Policy (Computer Config > Windows Settings > Security Settings > Advanced Audit Policy):
+
+$($remediationList -join "`n")
+
+Or use auditpol.exe:
+$(($missingPolicies | ForEach-Object { "auditpol /set /subcategory:`"$($_.Subcategory)`" /success:enable /failure:enable" }) -join "`n")
+"@
+                    $finding.Details = @{
+                        DomainController = $dcName
+                        MissingPolicies = $missingPolicies
+                        TotalMissing = $missingPolicies.Count
+                    }
+                    $findings += $finding
+                }
+            }
+            catch {
+                Write-Verbose "Could not remotely check audit policy on $dcName : $_"
+                
+                # Fall back to advisory finding
                 $finding = [ADSecurityFinding]::new()
                 $finding.Category = 'Audit Policy'
                 $finding.Issue = 'Advanced Audit Policy Verification Required'
                 $finding.Severity = 'High'
                 $finding.SeverityLevel = 3
-                $finding.AffectedObject = $dc.Name
-                $finding.Description = "Advanced audit policies should be verified on domain controller '$($dc.Name)' to ensure proper security event logging."
+                $finding.AffectedObject = $dcName
+                $finding.Description = "Could not remotely verify audit policies on domain controller '$dcName'. Manual verification is required."
                 $finding.Impact = "Without proper audit policies, security incidents cannot be detected or investigated effectively. Critical events may go unlogged."
                 $finding.Remediation = @"
-Verify and enable advanced audit policies on all DCs:
-1. Account Logon: Audit Credential Validation (Success, Failure)
-2. Account Management: Audit User/Security Group Management (Success, Failure)
-3. DS Access: Audit Directory Service Access/Changes (Success, Failure)
-4. Logon/Logoff: Audit Logon/Logoff/Account Lockout (Success, Failure)
-5. Object Access: Audit File Share/System (Success, Failure)
-6. Policy Change: Audit Policy/Auth Policy Change (Success, Failure)
-7. Privilege Use: Audit Sensitive Privilege Use (Success, Failure)
-8. System: Audit Security State Change/System Extension (Success, Failure)
+Verify and enable advanced audit policies on this DC by running:
+auditpol /get /category:*
 
-Use: auditpol /get /category:* to view current settings
+Ensure the following are enabled (Success and Failure):
+- Account Logon: Credential Validation, Kerberos Authentication Service
+- Account Management: User/Security Group/Computer Account Management
+- DS Access: Directory Service Access/Changes
+- Logon/Logoff: Logon, Special Logon, Account Lockout
+- Policy Change: Audit Policy Change, Authentication Policy Change
+- Privilege Use: Sensitive Privilege Use
+- System: Security State Change, Security System Extension
+
 Configure via Group Policy: Computer Config > Windows Settings > Security Settings > Advanced Audit Policy
 "@
                 $finding.Details = @{
-                    DomainController = $dc.Name
-                    RequiredCategories = $requiredAuditPolicies.Keys -join ', '
+                    DomainController = $dcName
+                    Error = $_.Exception.Message
+                    RemoteCheckFailed = $true
                 }
                 $findings += $finding
-                
-            }
-            catch {
-                Write-Warning "Could not check audit policy on $($dc.Name): $_"
             }
         }
         
@@ -73,7 +178,14 @@ Configure via Group Policy: Computer Config > Windows Settings > Security Settin
             $adminSDHolder = Get-ADObject "CN=AdminSDHolder,CN=System,$domainRoot" -Properties nTSecurityDescriptor -ErrorAction Stop
             $acl = $adminSDHolder.nTSecurityDescriptor
             
-            $hasAuditRules = $acl.GetAuditRules($true, $true, [System.Security.Principal.SecurityIdentifier]).Count -gt 0
+            $hasAuditRules = $false
+            try {
+                $auditRules = $acl.GetAuditRules($true, $true, [System.Security.Principal.SecurityIdentifier])
+                $hasAuditRules = $auditRules.Count -gt 0
+            }
+            catch {
+                Write-Verbose "Could not get audit rules: $_"
+            }
             
             if (-not $hasAuditRules) {
                 $finding = [ADSecurityFinding]::new()
@@ -84,15 +196,57 @@ Configure via Group Policy: Computer Config > Windows Settings > Security Settin
                 $finding.AffectedObject = 'AdminSDHolder'
                 $finding.Description = "The AdminSDHolder object does not have audit rules (SACL) configured to log access attempts."
                 $finding.Impact = "Changes to privileged group permissions and access attempts to critical AD objects will not be logged, hindering incident detection."
-                $finding.Remediation = "Configure SACL on AdminSDHolder to audit 'Write all properties' and 'Modify permissions' for 'Everyone' (Success and Failure)."
+                $finding.Remediation = @"
+Configure SACL on AdminSDHolder to audit modifications:
+1. Open ADSI Edit
+2. Navigate to CN=AdminSDHolder,CN=System,DC=domain,DC=com
+3. Right-click > Properties > Security > Advanced > Auditing
+4. Add: Everyone | Success/Failure | Write all properties, Modify permissions
+
+Or use PowerShell:
+`$path = "AD:CN=AdminSDHolder,CN=System,$domainRoot"
+`$acl = Get-Acl `$path
+`$auditRule = New-Object System.DirectoryServices.ActiveDirectoryAuditRule([System.Security.Principal.SecurityIdentifier]'S-1-1-0', 'WriteProperty,WriteDacl', 'Success,Failure', [guid]::Empty)
+`$acl.AddAuditRule(`$auditRule)
+Set-Acl `$path `$acl
+"@
                 $finding.Details = @{
                     DistinguishedName = $adminSDHolder.DistinguishedName
                 }
                 $findings += $finding
             }
+            
+            # Check domain root SACL
+            $domainObj = Get-ADObject $domainRoot -Properties nTSecurityDescriptor -ErrorAction Stop
+            $domainAcl = $domainObj.nTSecurityDescriptor
+            
+            $hasDomainAuditRules = $false
+            try {
+                $domainAuditRules = $domainAcl.GetAuditRules($true, $true, [System.Security.Principal.SecurityIdentifier])
+                $hasDomainAuditRules = $domainAuditRules.Count -gt 0
+            }
+            catch {
+                Write-Verbose "Could not get domain audit rules: $_"
+            }
+            
+            if (-not $hasDomainAuditRules) {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Audit Policy'
+                $finding.Issue = 'No Auditing on Domain Root Object'
+                $finding.Severity = 'Medium'
+                $finding.SeverityLevel = 2
+                $finding.AffectedObject = 'Domain Root'
+                $finding.Description = "The domain root object does not have audit rules (SACL) configured."
+                $finding.Impact = "Critical changes to domain-level permissions and replication rights will not be logged."
+                $finding.Remediation = "Configure SACL on the domain root to audit Write Property, Modify Permissions, and Extended Rights for Everyone."
+                $finding.Details = @{
+                    DistinguishedName = $domainRoot
+                }
+                $findings += $finding
+            }
         }
         catch {
-            Write-Verbose "Could not check AdminSDHolder SACL: $_"
+            Write-Verbose "Could not check object SACLs: $_"
         }
         
         Write-Verbose "Audit policy configuration audit complete. Found $($findings.Count) issues."
@@ -105,4 +259,3 @@ Configure via Group Policy: Computer Config > Windows Settings > Security Settin
 }
 
 #endregion
-
