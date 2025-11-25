@@ -71,11 +71,11 @@ function Test-AdminSDHolder {
                     $finding.Remediation = "Review and remove unauthorized ACE. Use: `$acl = Get-Acl 'AD:\$adminSDHolderDN'; Review `$acl.Access; Remove unauthorized entries using Set-Acl."
                     $finding.Details = @{
                         Identity = $identityReference
-                        AccessControlType = $ace.AccessControlType
-                        ActiveDirectoryRights = $ace.ActiveDirectoryRights
-                        InheritanceType = $ace.InheritanceType
-                        ObjectType = $ace.ObjectType
-                        InheritedObjectType = $ace.InheritedObjectType
+                        AccessControlType = $ace.AccessControlType.ToString()
+                        ActiveDirectoryRights = $ace.ActiveDirectoryRights.ToString()
+                        InheritanceType = $ace.InheritanceType.ToString()
+                        ObjectType = $ace.ObjectType.ToString()
+                        InheritedObjectType = $ace.InheritedObjectType.ToString()
                     }
                     $findings += $finding
                 }
@@ -94,7 +94,7 @@ function Test-AdminSDHolder {
                 $finding.Remediation = "Review the deny ACE and determine if it's intentional. Remove if unnecessary."
                 $finding.Details = @{
                     Identity = $identityReference
-                    ActiveDirectoryRights = $ace.ActiveDirectoryRights
+                    ActiveDirectoryRights = $ace.ActiveDirectoryRights.ToString()
                 }
                 $findings += $finding
             }
@@ -102,17 +102,30 @@ function Test-AdminSDHolder {
         
         # Check for accounts with adminCount=1 that shouldn't have it
         Write-Verbose "Checking for orphaned adminCount attributes..."
-        $protectedUsers = Get-ADUser -Filter 'adminCount -eq 1' -Properties adminCount, MemberOf
+        $protectedUsers = Get-ADUser -Filter 'adminCount -eq 1' -Properties adminCount, MemberOf, SamAccountName, DistinguishedName
         
-        foreach ($user in $protectedUsers) {
-            $isInProtectedGroup = $false
-            
-            foreach ($group in $Script:ProtectedGroups) {
-                if ($user.MemberOf -match "CN=$group,") {
-                    $isInProtectedGroup = $true
-                    break
+        # Build a list of all members of protected groups (using recursive membership)
+        $protectedGroupMembers = @{}
+        foreach ($groupName in $Script:ProtectedGroups) {
+            try {
+                $group = Get-ADGroup -Filter "Name -eq '$groupName'" -ErrorAction SilentlyContinue
+                if ($group) {
+                    $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction SilentlyContinue
+                    foreach ($member in $members) {
+                        if ($member.objectClass -eq 'user') {
+                            $protectedGroupMembers[$member.SamAccountName] = $true
+                        }
+                    }
                 }
             }
+            catch {
+                Write-Verbose "Could not enumerate members of '$groupName': $_"
+            }
+        }
+        
+        foreach ($user in $protectedUsers) {
+            # Check if user is in ANY protected group (using our pre-built hashtable)
+            $isInProtectedGroup = $protectedGroupMembers.ContainsKey($user.SamAccountName)
             
             if (-not $isInProtectedGroup) {
                 $finding = [ADSecurityFinding]::new()
@@ -142,4 +155,3 @@ function Test-AdminSDHolder {
 }
 
 #endregion
-
