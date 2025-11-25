@@ -5,11 +5,11 @@
 .DESCRIPTION
     This module provides extensive capabilities to audit Active Directory environments
     for misconfigurations and security vulnerabilities. It evaluates user accounts,
-    group policies, permissions, replication configurations, and AdminSDHolder objects. (More to be added later)
+    group policies, permissions, replication configurations, and AdminSDHolder objects.
 
 .NOTES
     Author: AlchemicalChef
-    Version: 1.0.0
+    Version: 1.0.1
     Requires: Active Directory PowerShell Module, Windows Server 2016+
 
 .EXAMPLE
@@ -37,6 +37,7 @@ $moduleScripts = @(
     'src/LapsAudits.ps1',
     'src/AuditPolicyAudits.ps1',
     'src/DelegationAudits.ps1',
+    'src/DomainAdminEquivalence.ps1',
     'src/Main.ps1',
     'src/Reporting.ps1'
 )
@@ -66,5 +67,6 @@ Export-ModuleMember -Function @(
     'Test-ADDomainTrusts',
     'Test-LAPSDeployment',
     'Test-AuditPolicyConfiguration',
-    'Test-ConstrainedDelegation'
+    'Test-ConstrainedDelegation',
+    'Test-ADDomainAdminEquivalence'
 )
