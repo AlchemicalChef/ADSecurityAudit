@@ -50,87 +50,182 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel tab-shell">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Overall health</p>
-            <h2>Severity distribution & metrics</h2>
-            <p class="muted">Track critical and high-risk items, privileged account counts, and audit freshness.</p>
+            <p class="eyebrow">Report navigation</p>
+            <h2>Switch between the summary, categories, and findings views</h2>
+            <p class="muted">Use the tabs to jump across the report without scrolling.</p>
           </div>
-          <div class="meta-stats" id="meta-stats"></div>
         </div>
-        <div class="summary-grid">
-          <article class="summary-card tone-critical">
-            <div class="card-top">
-              <div>
-                <p class="label">Critical</p>
-                <p class="count" id="critical-count">0</p>
-              </div>
-              <span class="icon">⚠️</span>
-            </div>
-            <p class="helper">Issues that need immediate attention.</p>
-            <div class="progress"><span id="critical-progress"></span></div>
-          </article>
-          <article class="summary-card tone-high">
-            <div class="card-top">
-              <div>
-                <p class="label">High</p>
-                <p class="count" id="high-count">0</p>
-              </div>
-              <span class="icon">🚨</span>
-            </div>
-            <p class="helper">Elevated risk requiring near-term remediation.</p>
-            <div class="progress"><span id="high-progress"></span></div>
-          </article>
-          <article class="summary-card tone-medium">
-            <div class="card-top">
-              <div>
-                <p class="label">Medium</p>
-                <p class="count" id="medium-count">0</p>
-              </div>
-              <span class="icon">📋</span>
-            </div>
-            <p class="helper">Configuration gaps to plan into backlog.</p>
-            <div class="progress"><span id="medium-progress"></span></div>
-          </article>
-          <article class="summary-card tone-low">
-            <div class="card-top">
-              <div>
-                <p class="label">Low</p>
-                <p class="count" id="low-count">0</p>
-              </div>
-              <span class="icon">ℹ️</span>
-            </div>
-            <p class="helper">Informational items for visibility.</p>
-            <div class="progress"><span id="low-progress"></span></div>
-          </article>
-        </div>
-        <div class="meta-row-bar">
-          <span id="total-count" class="pill">0 findings</span>
-          <span id="last-updated" class="pill">Waiting for data…</span>
+        <div class="tab-bar" role="tablist" aria-label="Report navigation">
+          <button class="tab-button active" data-tab="summary" role="tab" aria-selected="true">Summary</button>
+          <button class="tab-button" data-tab="categories" role="tab" aria-selected="false">Categories</button>
+          <button class="tab-button" data-tab="findings" role="tab" aria-selected="false">Findings</button>
         </div>
       </section>
 
-      <section class="panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Category coverage</p>
-            <h2>Delegation, password policies, DNS, and more</h2>
-            <p class="muted">Review health by control family with quick access to detailed evidence.</p>
+      <section class="tab-panel" data-tab-panel="summary" role="tabpanel">
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Identity administrators</p>
+              <h2>Domain Admins, Enterprise Admins, Schema Admins</h2>
+              <p class="muted">Monitor privileged groups to understand who can make forest-wide or schema changes.</p>
+            </div>
           </div>
-        </div>
-        <div id="category-grid" class="category-grid">Load an audit JSON file to see category health.</div>
+          <div class="admin-grid" id="admin-grid">
+            <article class="summary-card tone-identity">
+              <div class="card-top">
+                <div>
+                  <p class="label">Domain Admins</p>
+                  <p class="count" id="domain-admins-count">—</p>
+                </div>
+                <span class="icon">🛡️</span>
+              </div>
+              <p class="helper">Accounts that control the domain scope.</p>
+            </article>
+            <article class="summary-card tone-identity">
+              <div class="card-top">
+                <div>
+                  <p class="label">Enterprise Admins</p>
+                  <p class="count" id="enterprise-admins-count">—</p>
+                </div>
+                <span class="icon">🏢</span>
+              </div>
+              <p class="helper">Forest-wide administrative identities.</p>
+            </article>
+            <article class="summary-card tone-identity">
+              <div class="card-top">
+                <div>
+                  <p class="label">Schema Admins</p>
+                  <p class="count" id="schema-admins-count">—</p>
+                </div>
+                <span class="icon">📐</span>
+              </div>
+              <p class="helper">Principals that can alter the AD schema.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Overall health</p>
+              <h2>Severity distribution & metrics</h2>
+              <p class="muted">Track critical and high-risk items, privileged account counts, and audit freshness.</p>
+            </div>
+            <div class="meta-stats" id="meta-stats"></div>
+          </div>
+          <div class="summary-grid">
+            <article class="summary-card tone-critical">
+              <div class="card-top">
+                <div>
+                  <p class="label">Critical</p>
+                  <p class="count" id="critical-count">0</p>
+                </div>
+                <span class="icon">⚠️</span>
+              </div>
+              <p class="helper">Issues that need immediate attention.</p>
+              <div class="progress"><span id="critical-progress"></span></div>
+            </article>
+            <article class="summary-card tone-high">
+              <div class="card-top">
+                <div>
+                  <p class="label">High</p>
+                  <p class="count" id="high-count">0</p>
+                </div>
+                <span class="icon">🚨</span>
+              </div>
+              <p class="helper">Elevated risk requiring near-term remediation.</p>
+              <div class="progress"><span id="high-progress"></span></div>
+            </article>
+            <article class="summary-card tone-medium">
+              <div class="card-top">
+                <div>
+                  <p class="label">Medium</p>
+                  <p class="count" id="medium-count">0</p>
+                </div>
+                <span class="icon">📋</span>
+              </div>
+              <p class="helper">Configuration gaps to plan into backlog.</p>
+              <div class="progress"><span id="medium-progress"></span></div>
+            </article>
+            <article class="summary-card tone-low">
+              <div class="card-top">
+                <div>
+                  <p class="label">Low</p>
+                  <p class="count" id="low-count">0</p>
+                </div>
+                <span class="icon">ℹ️</span>
+              </div>
+              <p class="helper">Informational items for visibility.</p>
+              <div class="progress"><span id="low-progress"></span></div>
+            </article>
+          </div>
+          <div class="meta-row-bar">
+            <span id="total-count" class="pill">0 findings</span>
+            <span id="last-updated" class="pill">Waiting for data…</span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Risk summaries</p>
+              <h2>Critical & high finding highlights</h2>
+              <p class="muted">Jump into the riskiest findings directly from the summary.</p>
+            </div>
+          </div>
+          <div class="callout-grid">
+            <article class="callout-card" aria-live="polite">
+              <div class="callout-header">
+                <div>
+                  <p class="label">Critical findings</p>
+                  <p class="helper">Tap an item to open its evidence.</p>
+                </div>
+                <span class="severity-pill severity-critical" id="critical-summary-count">0</span>
+              </div>
+              <div id="critical-summary-list" class="callout-list">No critical findings yet.</div>
+            </article>
+            <article class="callout-card" aria-live="polite">
+              <div class="callout-header">
+                <div>
+                  <p class="label">High findings</p>
+                  <p class="helper">Keep an eye on elevated-risk gaps.</p>
+                </div>
+                <span class="severity-pill severity-high" id="high-summary-count">0</span>
+              </div>
+              <div id="high-summary-list" class="callout-list">No high findings yet.</div>
+            </article>
+          </div>
+        </section>
       </section>
 
-      <section class="panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">All findings</p>
-            <h2>Tap into remediation details and references</h2>
-            <p class="muted">Each finding includes impacted objects, severity, impact, remediation steps, and linked documentation.</p>
+      <section class="tab-panel" data-tab-panel="categories" role="tabpanel" hidden>
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Category coverage</p>
+              <h2>Delegation, password policies, DNS, and more</h2>
+              <p class="muted">Review health by control family with quick access to detailed evidence.</p>
+            </div>
           </div>
-        </div>
-        <div id="findings-list" class="finding-list">No findings to display yet.</div>
+          <div id="category-grid" class="category-grid">Load an audit JSON file to see category health.</div>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="findings" role="tabpanel" hidden>
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">All findings</p>
+              <h2>Tap into remediation details and references</h2>
+              <p class="muted">Each finding includes impacted objects, severity, impact, remediation steps, and linked documentation.</p>
+            </div>
+          </div>
+          <div id="findings-list" class="finding-list">No findings to display yet.</div>
+        </section>
       </section>
     </main>
 

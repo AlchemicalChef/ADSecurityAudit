@@ -14,6 +14,13 @@ const state = {
   metadata: {},
 };
 
+function normalizeSeverity(value) {
+  if (!value) return 'Low';
+  const normalized = String(value).toLowerCase();
+  const lookup = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
+  return lookup[normalized] || 'Low';
+}
+
 function setStatus(message, tone = 'muted') {
   const status = document.getElementById('status-message');
   status.textContent = message;
@@ -29,7 +36,7 @@ function formatDate(dateString) {
 function computeSummary(findings) {
   return findings.reduce(
     (acc, item) => {
-      const severity = item.Severity || 'Low';
+      const severity = normalizeSeverity(item.Severity);
       acc[severity] = (acc[severity] || 0) + 1;
       return acc;
     },
@@ -44,9 +51,14 @@ function setCount(id, count, percentage) {
   if (progressEl) progressEl.style.width = `${percentage}%`;
 }
 
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
 function highestSeverity(findings) {
   return findings.reduce((top, item) => {
-    const sev = item.Severity || 'Low';
+    const sev = normalizeSeverity(item.Severity);
     if (!top || SEVERITY_WEIGHTS[sev] > SEVERITY_WEIGHTS[top]) {
       return sev;
     }
@@ -61,7 +73,7 @@ function groupByCategory(findings) {
       acc[category] = { category, findings: [], counts: { Critical: 0, High: 0, Medium: 0, Low: 0 } };
     }
     acc[category].findings.push(item);
-    acc[category].counts[item.Severity || 'Low'] += 1;
+    acc[category].counts[normalizeSeverity(item.Severity)] += 1;
     return acc;
   }, {});
 }
@@ -90,6 +102,18 @@ function renderSummary(findings) {
   document.getElementById('last-updated').textContent = latest
     ? `Updated ${formatDate(latest)}`
     : 'Waiting for data…';
+}
+
+function renderAdminCounts(metadata) {
+  const entries = [
+    { id: 'domain-admins-count', value: metadata.domainAdmins },
+    { id: 'enterprise-admins-count', value: metadata.enterpriseAdmins },
+    { id: 'schema-admins-count', value: metadata.schemaAdmins },
+  ];
+  entries.forEach((entry) => {
+    const display = entry.value ?? '—';
+    setText(entry.id, display);
+  });
 }
 
 function buildPill(text) {
@@ -153,7 +177,7 @@ function renderCategoryGrid(findings) {
       }`));
     }
     const topIssue = group.findings.sort(
-      (a, b) => SEVERITY_WEIGHTS[b.Severity || 'Low'] - SEVERITY_WEIGHTS[a.Severity || 'Low']
+      (a, b) => SEVERITY_WEIGHTS[normalizeSeverity(b.Severity)] - SEVERITY_WEIGHTS[normalizeSeverity(a.Severity)]
     )[0];
     if (topIssue) {
       pillRow.append(buildPill(`Top issue: ${topIssue.Issue}`));
@@ -177,7 +201,9 @@ function renderFindings(findings) {
     return;
   }
 
-  const sorted = [...findings].sort((a, b) => SEVERITY_WEIGHTS[b.Severity || 'Low'] - SEVERITY_WEIGHTS[a.Severity || 'Low']);
+  const sorted = [...findings].sort(
+    (a, b) => SEVERITY_WEIGHTS[normalizeSeverity(b.Severity)] - SEVERITY_WEIGHTS[normalizeSeverity(a.Severity)]
+  );
 
   sorted.forEach((finding) => {
     const card = document.createElement('article');
@@ -190,9 +216,10 @@ function renderFindings(findings) {
     title.className = 'finding-title';
     title.innerHTML = `${getCategoryIcon(finding.Category)} <span>${finding.Issue}</span>`;
 
+    const severityValue = normalizeSeverity(finding.Severity);
     const severity = document.createElement('span');
-    severity.className = `severity-pill severity-${(finding.Severity || 'Low').toLowerCase()}`;
-    severity.textContent = finding.Severity || 'Low';
+    severity.className = `severity-pill severity-${severityValue.toLowerCase()}`;
+    severity.textContent = severityValue;
 
     header.append(title, severity);
 
@@ -228,6 +255,52 @@ function renderFindings(findings) {
   });
 }
 
+function renderRiskCallouts(findings) {
+  const severityBuckets = {
+    Critical: document.getElementById('critical-summary-list'),
+    High: document.getElementById('high-summary-list'),
+  };
+  const countDisplays = {
+    Critical: document.getElementById('critical-summary-count'),
+    High: document.getElementById('high-summary-count'),
+  };
+
+  Object.entries(severityBuckets).forEach(([severity, container]) => {
+    if (!container) return;
+    container.innerHTML = '';
+    const filtered = findings.filter((f) => normalizeSeverity(f.Severity) === severity);
+    if (countDisplays[severity]) countDisplays[severity].textContent = filtered.length;
+
+    if (!filtered.length) {
+      container.textContent = `No ${severity.toLowerCase()} findings yet.`;
+      return;
+    }
+
+    filtered.slice(0, 5).forEach((finding) => {
+      const item = document.createElement('div');
+      item.className = 'callout-item';
+      const left = document.createElement('div');
+      left.innerHTML = `
+        <strong>${finding.Issue}</strong>
+        <div class="meta-row">
+          <span>${finding.Category || 'Uncategorized'}</span>
+          <span>• Affected: ${finding.AffectedObject || 'Unknown'}</span>
+        </div>
+      `;
+
+      const right = document.createElement('div');
+      right.className = 'meta-row';
+      right.innerHTML = `
+        <span>Detected: ${formatDate(finding.DetectedDate)}</span>
+      `;
+
+      item.append(left, right);
+      item.addEventListener('click', () => openModal(finding));
+      container.appendChild(item);
+    });
+  });
+}
+
 function render(findings, metadata = {}) {
   state.findings = findings;
   state.metadata = metadata;
@@ -235,6 +308,8 @@ function render(findings, metadata = {}) {
   renderCategoryGrid(findings);
   renderFindings(findings);
   renderMeta(metadata);
+  renderAdminCounts(metadata);
+  renderRiskCallouts(findings);
   setStatus('Audit data loaded and visualized.');
 }
 
@@ -270,6 +345,9 @@ function extractMetadata(data) {
     domainControllers: summary.DomainControllers || stats.DomainControllers || meta.DomainControllers,
     auditGenerated: summary.Generated || data.Generated || meta.GeneratedOn,
     staleSeamlessSso: summary.AzureAdSsoExpiredKeys || stats.AzureAdSsoExpiredKeys,
+    domainAdmins: summary.DomainAdmins || meta.DomainAdmins || stats.DomainAdmins,
+    enterpriseAdmins: summary.EnterpriseAdmins || meta.EnterpriseAdmins || stats.EnterpriseAdmins,
+    schemaAdmins: summary.SchemaAdmins || meta.SchemaAdmins || stats.SchemaAdmins,
   };
 }
 
@@ -362,9 +440,10 @@ function buildModalFinding(finding) {
   header.className = 'finding-header';
   header.innerHTML = `${getCategoryIcon(finding.Category)} <strong>${finding.Issue}</strong>`;
 
+  const severityValue = normalizeSeverity(finding.Severity);
   const severity = document.createElement('span');
-  severity.className = `severity-pill severity-${(finding.Severity || 'Low').toLowerCase()}`;
-  severity.textContent = finding.Severity || 'Low';
+  severity.className = `severity-pill severity-${severityValue.toLowerCase()}`;
+  severity.textContent = severityValue;
 
   header.appendChild(severity);
 
@@ -482,6 +561,29 @@ function handlePastedJson() {
   }
 }
 
+function initTabs() {
+  const buttons = Array.from(document.querySelectorAll('.tab-button'));
+  const panels = Array.from(document.querySelectorAll('.tab-panel'));
+
+  function activate(tabId) {
+    buttons.forEach((button) => {
+      const isActive = button.dataset.tab === tabId;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-selected', String(isActive));
+    });
+    panels.forEach((panel) => {
+      const shouldShow = panel.dataset.tabPanel === tabId;
+      panel.hidden = !shouldShow;
+    });
+  }
+
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => activate(button.dataset.tab));
+  });
+
+  if (buttons[0]) activate(buttons[0].dataset.tab);
+}
+
 function boot() {
   document.getElementById('file-input').addEventListener('change', handleFileUpload);
   document.getElementById('load-sample').addEventListener('click', () => loadRemoteJson('./sample-data/audit-report.json'));
@@ -491,6 +593,7 @@ function boot() {
   document.getElementById('modal').addEventListener('click', (e) => {
     if (e.target.id === 'modal') closeModal();
   });
+  initTabs();
   loadRemoteJson('./sample-data/audit-report.json');
 }
 
