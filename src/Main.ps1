@@ -77,7 +77,7 @@ function Start-ADSecurityAudit {
         Write-Host "Domain: $($domain.DNSRoot)" -ForegroundColor Green
         Write-Host "Domain DN: $($domain.DistinguishedName)`n" -ForegroundColor Green
         
-        # Define all tests
+        # Define all tests - including the new DomainAdminEquivalence test
         $allTests = @{
             'UserAccounts' = { Test-ADUserSecurity -InactiveDaysThreshold $InactiveDaysThreshold -PasswordAgeThreshold $PasswordAgeThreshold }
             'PrivilegedGroups' = { Test-ADPrivilegedGroups }
@@ -92,6 +92,7 @@ function Start-ADSecurityAudit {
             'LAPSDeployment' = { Test-LAPSDeployment }
             'AuditPolicyConfiguration' = { Test-AuditPolicyConfiguration }
             'ConstrainedDelegation' = { Test-ConstrainedDelegation }
+            'DomainAdminEquivalence' = { Test-ADDomainAdminEquivalence }
         }
         
         # Determine which tests to run
@@ -110,7 +111,37 @@ function Start-ADSecurityAudit {
             
             try {
                 $testResults = & $allTests[$testName]
-                $allFindings += $testResults
+                
+                # Handle both ADSecurityFinding objects and PSCustomObject (from DomainAdminEquivalence)
+                if ($testResults) {
+                    foreach ($result in $testResults) {
+                        # Convert PSCustomObject to ADSecurityFinding if needed
+                        if ($result -is [PSCustomObject] -and $result -isnot [ADSecurityFinding]) {
+                            $finding = [ADSecurityFinding]::new()
+                            $finding.Category = $result.Category
+                            $finding.Issue = $result.Issue
+                            $finding.Severity = $result.Severity
+                            $finding.SeverityLevel = if ($result.SeverityLevel) { $result.SeverityLevel } else {
+                                switch ($result.Severity) {
+                                    'Critical' { 4 }
+                                    'High' { 3 }
+                                    'Medium' { 2 }
+                                    'Low' { 1 }
+                                    default { 0 }
+                                }
+                            }
+                            $finding.AffectedObject = $result.AffectedObject
+                            $finding.Description = $result.Description
+                            $finding.Impact = $result.Impact
+                            $finding.Remediation = $result.Remediation
+                            $finding.Details = if ($result.Details) { $result.Details } else { @{} }
+                            $allFindings += $finding
+                        }
+                        else {
+                            $allFindings += $result
+                        }
+                    }
+                }
                 
                 $criticalCount = ($testResults | Where-Object { $_.Severity -eq 'Critical' }).Count
                 $highCount = ($testResults | Where-Object { $_.Severity -eq 'High' }).Count
@@ -205,4 +236,3 @@ function Start-ADSecurityAudit {
         Stop-Transcript
     }
 }
-
