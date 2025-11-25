@@ -14,6 +14,13 @@ const state = {
   metadata: {},
 };
 
+function normalizeSeverity(value) {
+  if (!value) return 'Low';
+  const normalized = String(value).toLowerCase();
+  const lookup = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
+  return lookup[normalized] || 'Low';
+}
+
 function setStatus(message, tone = 'muted') {
   const status = document.getElementById('status-message');
   status.textContent = message;
@@ -29,7 +36,7 @@ function formatDate(dateString) {
 function computeSummary(findings) {
   return findings.reduce(
     (acc, item) => {
-      const severity = item.Severity || 'Low';
+      const severity = normalizeSeverity(item.Severity);
       acc[severity] = (acc[severity] || 0) + 1;
       return acc;
     },
@@ -51,7 +58,7 @@ function setText(id, value) {
 
 function highestSeverity(findings) {
   return findings.reduce((top, item) => {
-    const sev = item.Severity || 'Low';
+    const sev = normalizeSeverity(item.Severity);
     if (!top || SEVERITY_WEIGHTS[sev] > SEVERITY_WEIGHTS[top]) {
       return sev;
     }
@@ -66,7 +73,7 @@ function groupByCategory(findings) {
       acc[category] = { category, findings: [], counts: { Critical: 0, High: 0, Medium: 0, Low: 0 } };
     }
     acc[category].findings.push(item);
-    acc[category].counts[item.Severity || 'Low'] += 1;
+    acc[category].counts[normalizeSeverity(item.Severity)] += 1;
     return acc;
   }, {});
 }
@@ -170,7 +177,7 @@ function renderCategoryGrid(findings) {
       }`));
     }
     const topIssue = group.findings.sort(
-      (a, b) => SEVERITY_WEIGHTS[b.Severity || 'Low'] - SEVERITY_WEIGHTS[a.Severity || 'Low']
+      (a, b) => SEVERITY_WEIGHTS[normalizeSeverity(b.Severity)] - SEVERITY_WEIGHTS[normalizeSeverity(a.Severity)]
     )[0];
     if (topIssue) {
       pillRow.append(buildPill(`Top issue: ${topIssue.Issue}`));
@@ -194,7 +201,9 @@ function renderFindings(findings) {
     return;
   }
 
-  const sorted = [...findings].sort((a, b) => SEVERITY_WEIGHTS[b.Severity || 'Low'] - SEVERITY_WEIGHTS[a.Severity || 'Low']);
+  const sorted = [...findings].sort(
+    (a, b) => SEVERITY_WEIGHTS[normalizeSeverity(b.Severity)] - SEVERITY_WEIGHTS[normalizeSeverity(a.Severity)]
+  );
 
   sorted.forEach((finding) => {
     const card = document.createElement('article');
@@ -207,9 +216,10 @@ function renderFindings(findings) {
     title.className = 'finding-title';
     title.innerHTML = `${getCategoryIcon(finding.Category)} <span>${finding.Issue}</span>`;
 
+    const severityValue = normalizeSeverity(finding.Severity);
     const severity = document.createElement('span');
-    severity.className = `severity-pill severity-${(finding.Severity || 'Low').toLowerCase()}`;
-    severity.textContent = finding.Severity || 'Low';
+    severity.className = `severity-pill severity-${severityValue.toLowerCase()}`;
+    severity.textContent = severityValue;
 
     header.append(title, severity);
 
@@ -430,9 +440,10 @@ function buildModalFinding(finding) {
   header.className = 'finding-header';
   header.innerHTML = `${getCategoryIcon(finding.Category)} <strong>${finding.Issue}</strong>`;
 
+  const severityValue = normalizeSeverity(finding.Severity);
   const severity = document.createElement('span');
-  severity.className = `severity-pill severity-${(finding.Severity || 'Low').toLowerCase()}`;
-  severity.textContent = finding.Severity || 'Low';
+  severity.className = `severity-pill severity-${severityValue.toLowerCase()}`;
+  severity.textContent = severityValue;
 
   header.appendChild(severity);
 
