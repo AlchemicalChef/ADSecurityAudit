@@ -9,7 +9,10 @@ function Test-LAPSDeployment {
     
     try {
         $domain = Get-ADDomain
-        $schemaPath = "CN=ms-Mcs-AdmPwd,CN=Schema,CN=Configuration,$($domain.DistinguishedName)"
+        
+        # Get the proper schema naming context from RootDSE
+        $rootDSE = Get-ADRootDSE
+        $schemaPath = "CN=ms-Mcs-AdmPwd,$($rootDSE.schemaNamingContext)"
         
         # Check if LAPS schema is extended
         try {
@@ -20,29 +23,45 @@ function Test-LAPSDeployment {
         catch {
             $lapsInstalled = $false
             
-            $finding = [ADSecurityFinding]::new()
-            $finding.Category = 'LAPS Deployment'
-            $finding.Issue = 'LAPS Not Deployed'
-            $finding.Severity = 'Critical'
-            $finding.SeverityLevel = 4
-            $finding.AffectedObject = 'Domain'
-            $finding.Description = "Local Administrator Password Solution (LAPS) is not deployed in the domain. LAPS schema extensions are missing."
-            $finding.Impact = "Without LAPS, local administrator passwords across workstations and servers are likely identical or predictable, facilitating lateral movement."
-            $finding.Remediation = "Deploy LAPS to randomize and manage local administrator passwords across all domain computers. Install LAPS schema: Update-AdmPwdADSchema"
-            $finding.Details = @{
-                Domain = $domain.DNSRoot
+            # Also check for Windows LAPS (newer schema attribute)
+            try {
+                $windowsLapsSchema = "CN=ms-LAPS-Password,$($rootDSE.schemaNamingContext)"
+                $windowsLaps = Get-ADObject -Identity $windowsLapsSchema -ErrorAction Stop
+                $lapsInstalled = $true
+                Write-Verbose "Windows LAPS schema extension detected."
             }
-            $findings += $finding
-            
-            Write-Verbose "LAPS not deployed. Skipping computer-level checks."
-            return $findings
+            catch {
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'LAPS Deployment'
+                $finding.Issue = 'LAPS Not Deployed'
+                $finding.Severity = 'Critical'
+                $finding.SeverityLevel = 4
+                $finding.AffectedObject = 'Domain'
+                $finding.Description = "Local Administrator Password Solution (LAPS) is not deployed in the domain. LAPS schema extensions are missing."
+                $finding.Impact = "Without LAPS, local administrator passwords across workstations and servers are likely identical or predictable, facilitating lateral movement."
+                $finding.Remediation = "Deploy LAPS to randomize and manage local administrator passwords across all domain computers. For legacy LAPS: Update-AdmPwdADSchema. For Windows LAPS (Server 2019+): Update-LapsADSchema"
+                $finding.Details = @{
+                    Domain = $domain.DNSRoot
+                    LegacySchemaPath = $schemaPath
+                }
+                $findings += $finding
+                
+                Write-Verbose "LAPS not deployed. Skipping computer-level checks."
+                return $findings
+            }
         }
         
         # If LAPS is installed, check computer coverage
         if ($lapsInstalled) {
-            $computers = Get-ADComputer -Filter * -Properties ms-Mcs-AdmPwdExpirationTime, OperatingSystem -ErrorAction Stop
-            $computersWithLAPS = $computers | Where-Object { $_.'ms-Mcs-AdmPwdExpirationTime' }
-            $computersWithoutLAPS = $computers | Where-Object { -not $_.'ms-Mcs-AdmPwdExpirationTime' }
+            # Check for both legacy LAPS and Windows LAPS attributes
+            $computers = Get-ADComputer -Filter * -Properties 'ms-Mcs-AdmPwdExpirationTime', 'msLAPS-PasswordExpirationTime', OperatingSystem -ErrorAction Stop
+            
+            $computersWithLAPS = $computers | Where-Object { 
+                $_.'ms-Mcs-AdmPwdExpirationTime' -or $_.'msLAPS-PasswordExpirationTime' 
+            }
+            $computersWithoutLAPS = $computers | Where-Object { 
+                -not $_.'ms-Mcs-AdmPwdExpirationTime' -and -not $_.'msLAPS-PasswordExpirationTime' 
+            }
             
             $totalComputers = $computers.Count
             $coveragePercent = if ($totalComputers -gt 0) { 
@@ -80,11 +99,28 @@ function Test-LAPSDeployment {
                 $findings += $finding
             }
             
-            # Check for expired LAPS passwords
+            # Check for expired LAPS passwords (legacy LAPS)
             $now = [DateTime]::UtcNow
             $expiredLAPSComputers = $computersWithLAPS | Where-Object {
-                $expirationTime = [DateTime]::FromFileTimeUtc($_.'ms-Mcs-AdmPwdExpirationTime')
-                $expirationTime -lt $now
+                if ($_.'ms-Mcs-AdmPwdExpirationTime') {
+                    try {
+                        $expirationTime = [DateTime]::FromFileTimeUtc($_.'ms-Mcs-AdmPwdExpirationTime')
+                        return $expirationTime -lt $now
+                    }
+                    catch {
+                        return $false
+                    }
+                }
+                elseif ($_.'msLAPS-PasswordExpirationTime') {
+                    try {
+                        $expirationTime = [DateTime]::FromFileTimeUtc($_.'msLAPS-PasswordExpirationTime')
+                        return $expirationTime -lt $now
+                    }
+                    catch {
+                        return $false
+                    }
+                }
+                return $false
             }
             
             if ($expiredLAPSComputers.Count -gt 0) {
@@ -115,4 +151,3 @@ function Test-LAPSDeployment {
 }
 
 #endregion
-
