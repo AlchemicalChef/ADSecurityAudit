@@ -28,14 +28,19 @@ function Test-ADPrivilegedGroups {
                     continue
                 }
                 
-                $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction SilentlyContinue
+                # Get recursive members for total count and user analysis
+                $recursiveMembers = Get-ADGroupMember -Identity $group -Recursive -ErrorAction SilentlyContinue
                 
-                if (-not $members) {
+                # Get direct members separately to detect nested groups
+                # (Get-ADGroupMember -Recursive only returns leaf objects, not groups)
+                $directMembers = Get-ADGroupMember -Identity $group -ErrorAction SilentlyContinue
+                
+                if (-not $recursiveMembers -and -not $directMembers) {
                     continue
                 }
                 
-                # Check for excessive membership
-                $memberCount = ($members | Measure-Object).Count
+                # Check for excessive membership (using recursive count)
+                $memberCount = ($recursiveMembers | Measure-Object).Count
                 
                 $criticalGroups = @('Domain Admins', 'Enterprise Admins', 'Schema Admins')
                 $threshold = if ($groupName -in $criticalGroups) { $Script:ThresholdCriticalGroupSize } else { $Script:ThresholdStandardGroupSize }
@@ -53,13 +58,13 @@ function Test-ADPrivilegedGroups {
                     $finding.Details = @{
                         GroupDN = $group.DistinguishedName
                         MemberCount = $memberCount
-                        Members = ($members | Select-Object -ExpandProperty SamAccountName) -join '; '
+                        Members = ($recursiveMembers | Select-Object -ExpandProperty SamAccountName) -join '; '
                     }
                     $findings += $finding
                 }
                 
-                # Check for nested groups in critical groups
-                $nestedGroups = $members | Where-Object { $_.objectClass -eq 'group' }
+                # Check for nested groups in critical groups (using direct members)
+                $nestedGroups = $directMembers | Where-Object { $_.objectClass -eq 'group' }
                 if ($nestedGroups -and $groupName -in $criticalGroups) {
                     $finding = [ADSecurityFinding]::new()
                     $finding.Category = 'Privileged Groups'
@@ -78,7 +83,7 @@ function Test-ADPrivilegedGroups {
                 }
                 
                 # Check for disabled or inactive users in privileged groups
-                $userMembers = $members | Where-Object { $_.objectClass -eq 'user' }
+                $userMembers = $recursiveMembers | Where-Object { $_.objectClass -eq 'user' }
                 foreach ($member in $userMembers) {
                     $userDetails = Get-ADUser -Identity $member -Properties Enabled, LastLogonDate -ErrorAction SilentlyContinue
                     
