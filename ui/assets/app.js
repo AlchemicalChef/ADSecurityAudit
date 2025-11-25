@@ -6,6 +6,22 @@ const CATEGORY_ICONS = {
   'Authentication Policies': '🔒',
   'Audit Configuration': '📑',
   'LAPS Coverage': '🛡️',
+  'User Account': '👤',
+  'Privileged Groups': '👥',
+  'AdminSDHolder': '🔐',
+  'Group Policy': '📋',
+  'Replication Security': '🔄',
+  'Domain Security': '🏛️',
+  'Dangerous Permissions': '⚠️',
+  'Certificate Services': '📜',
+  'Kerberos Security': '🎫',
+  'Domain Trusts': '🤝',
+  'LAPS Deployment': '🔑',
+  'Audit Policy': '📊',
+  'Kerberos Delegation': '🎭',
+  'Admin Equivalence': '👑',
+  'Domain Admin Equivalence': '👑',
+  'Legacy Attack Vector': '⚡',
   default: '📂',
 };
 
@@ -23,13 +39,28 @@ function normalizeSeverity(value) {
 
 function setStatus(message, tone = 'muted') {
   const status = document.getElementById('status-message');
-  status.textContent = message;
-  status.className = tone;
+  if (status) {
+    status.textContent = message;
+    status.className = tone;
+  }
 }
 
 function formatDate(dateString) {
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return 'Unknown date';
+  if (!dateString) return 'Unknown date';
+  
+  // Handle .NET DateTime serialization formats
+  let date;
+  if (typeof dateString === 'string' && dateString.startsWith('/Date(')) {
+    // .NET JSON serialization format: /Date(1234567890000)/
+    const match = dateString.match(/\/Date\((\d+)\)\//);
+    if (match) {
+      date = new Date(parseInt(match[1], 10));
+    }
+  } else {
+    date = new Date(dateString);
+  }
+  
+  if (!date || Number.isNaN(date.getTime())) return 'Unknown date';
   return date.toLocaleString();
 }
 
@@ -91,17 +122,23 @@ function renderSummary(findings) {
   setCount('medium-count', summary.Medium, (summary.Medium / total) * 100);
   setCount('low-count', summary.Low, (summary.Low / total) * 100);
 
-  document.getElementById('total-count').textContent = `${findings.length} findings`;
+  const totalCountEl = document.getElementById('total-count');
+  if (totalCountEl) totalCountEl.textContent = `${findings.length} findings`;
+  
   const latest = findings.reduce((current, finding) => {
+    if (!finding.DetectedDate) return current;
     const candidate = new Date(finding.DetectedDate);
     if (Number.isNaN(candidate.getTime())) return current;
     if (!current || candidate > current) return candidate;
     return current;
   }, null);
 
-  document.getElementById('last-updated').textContent = latest
-    ? `Updated ${formatDate(latest)}`
-    : 'Waiting for data…';
+  const lastUpdatedEl = document.getElementById('last-updated');
+  if (lastUpdatedEl) {
+    lastUpdatedEl.textContent = latest
+      ? `Updated ${formatDate(latest)}`
+      : 'Waiting for data…';
+  }
 }
 
 function renderAdminCounts(metadata) {
@@ -129,12 +166,15 @@ function extractDetailSnippets(details) {
   return entries.map(([key, value]) => {
     if (Array.isArray(value)) return `${key}: ${value.slice(0, 3).join(', ')}`;
     if (typeof value === 'boolean') return `${key}: ${value ? 'Yes' : 'No'}`;
+    if (value === null || value === undefined) return `${key}: N/A`;
     return `${key}: ${value}`;
   });
 }
 
 function renderCategoryGrid(findings) {
   const container = document.getElementById('category-grid');
+  if (!container) return;
+  
   container.innerHTML = '';
   const groups = Object.values(groupByCategory(findings)).sort(
     (a, b) => SEVERITY_WEIGHTS[highestSeverity(b.findings)] - SEVERITY_WEIGHTS[highestSeverity(a.findings)]
@@ -155,7 +195,7 @@ function renderCategoryGrid(findings) {
     header.className = 'category-header';
     const title = document.createElement('div');
     title.className = 'category-title';
-    title.innerHTML = `<span class="icon">${getCategoryIcon(group.category)}</span><span>${group.category}</span>`;
+    title.innerHTML = `<span class="icon">${getCategoryIcon(group.category)}</span><span>${escapeHtml(group.category)}</span>`;
     const chip = document.createElement('span');
     chip.className = `status-chip ${severityClass}`;
     chip.textContent = `${severity} risk`;
@@ -179,7 +219,7 @@ function renderCategoryGrid(findings) {
     const topIssue = group.findings.sort(
       (a, b) => SEVERITY_WEIGHTS[normalizeSeverity(b.Severity)] - SEVERITY_WEIGHTS[normalizeSeverity(a.Severity)]
     )[0];
-    if (topIssue) {
+    if (topIssue && topIssue.Issue) {
       pillRow.append(buildPill(`Top issue: ${topIssue.Issue}`));
     }
 
@@ -192,8 +232,17 @@ function renderCategoryGrid(findings) {
   });
 }
 
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 function renderFindings(findings) {
   const container = document.getElementById('findings-list');
+  if (!container) return;
+  
   container.innerHTML = '';
 
   if (!findings.length) {
@@ -214,7 +263,7 @@ function renderFindings(findings) {
 
     const title = document.createElement('div');
     title.className = 'finding-title';
-    title.innerHTML = `${getCategoryIcon(finding.Category)} <span>${finding.Issue}</span>`;
+    title.innerHTML = `${getCategoryIcon(finding.Category)} <span>${escapeHtml(finding.Issue || 'Unknown Issue')}</span>`;
 
     const severityValue = normalizeSeverity(finding.Severity);
     const severity = document.createElement('span');
@@ -226,8 +275,8 @@ function renderFindings(findings) {
     const meta = document.createElement('div');
     meta.className = 'meta-row';
     meta.innerHTML = `
-      <span class="meta-chip">Category: ${finding.Category}</span>
-      <span class="meta-chip">Affected: ${finding.AffectedObject || 'Unknown'}</span>
+      <span class="meta-chip">Category: ${escapeHtml(finding.Category || 'Unknown')}</span>
+      <span class="meta-chip">Affected: ${escapeHtml(finding.AffectedObject || 'Unknown')}</span>
       <span class="meta-chip">Detected: ${formatDate(finding.DetectedDate)}</span>
     `;
 
@@ -237,11 +286,11 @@ function renderFindings(findings) {
 
     const impact = document.createElement('p');
     impact.className = 'impact';
-    impact.innerHTML = `<strong>Impact:</strong> ${finding.Impact || 'No impact provided.'}`;
+    impact.innerHTML = `<strong>Impact:</strong> ${escapeHtml(finding.Impact || 'No impact provided.')}`;
 
     const remediation = document.createElement('p');
     remediation.className = 'remediation';
-    remediation.innerHTML = `<strong>Remediation:</strong> ${finding.Remediation || 'No remediation provided.'}`;
+    remediation.innerHTML = `<strong>Remediation:</strong> ${escapeHtml(finding.Remediation || 'No remediation provided.')}`;
 
     const references = buildReferences(finding.RemediationReference || finding.References);
 
@@ -268,7 +317,7 @@ function renderRiskCallouts(findings) {
   Object.entries(severityBuckets).forEach(([severity, container]) => {
     if (!container) return;
     container.innerHTML = '';
-    const filtered = findings.filter((f) => (f.Severity || 'Low') === severity);
+    const filtered = findings.filter((f) => normalizeSeverity(f.Severity) === severity);
     if (countDisplays[severity]) countDisplays[severity].textContent = filtered.length;
 
     if (!filtered.length) {
@@ -281,10 +330,10 @@ function renderRiskCallouts(findings) {
       item.className = 'callout-item';
       const left = document.createElement('div');
       left.innerHTML = `
-        <strong>${finding.Issue}</strong>
+        <strong>${escapeHtml(finding.Issue || 'Unknown Issue')}</strong>
         <div class="meta-row">
-          <span>${finding.Category || 'Uncategorized'}</span>
-          <span>• Affected: ${finding.AffectedObject || 'Unknown'}</span>
+          <span>${escapeHtml(finding.Category || 'Uncategorized')}</span>
+          <span>• Affected: ${escapeHtml(finding.AffectedObject || 'Unknown')}</span>
         </div>
       `;
 
@@ -326,7 +375,7 @@ function normalizeFindings(data) {
 
   const valueArrays = Object.values(data).filter((value) => Array.isArray(value));
   const findingLikeArrays = valueArrays.filter((arr) =>
-    arr.some((item) => typeof item === 'object' && (item.Issue || item.Severity))
+    arr.some((item) => typeof item === 'object' && (item.Issue || item.Severity || item.Category))
   );
   if (findingLikeArrays.length) {
     return findingLikeArrays.flat();
@@ -353,6 +402,8 @@ function extractMetadata(data) {
 
 function renderMeta(metadata) {
   const container = document.getElementById('meta-stats');
+  if (!container) return;
+  
   container.innerHTML = '';
   const entries = [
     { label: 'Privileged Accounts', value: metadata.privilegedAccounts ?? '—', hint: 'High-risk identities to lock down' },
@@ -365,30 +416,41 @@ function renderMeta(metadata) {
     const card = document.createElement('div');
     card.className = 'meta-stat-card';
     card.innerHTML = `
-      <span class="label">${entry.label}</span>
-      <span class="value">${entry.value}</span>
-      <span class="hint">${entry.hint}</span>
+      <span class="label">${escapeHtml(entry.label)}</span>
+      <span class="value">${escapeHtml(String(entry.value))}</span>
+      <span class="hint">${escapeHtml(entry.hint)}</span>
     `;
     container.appendChild(card);
   });
 }
 
 function buildReferences(refs) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'references';
+  
   if (!refs) {
-    const wrapper = document.createElement('p');
-    wrapper.className = 'references';
     wrapper.innerHTML = '<strong>References:</strong> Not provided';
     return wrapper;
   }
 
   const list = Array.isArray(refs) ? refs : [refs];
-  const wrapper = document.createElement('div');
-  wrapper.className = 'references';
+  const validRefs = list.filter(ref => ref && typeof ref === 'string');
+  
+  if (!validRefs.length) {
+    wrapper.innerHTML = '<strong>References:</strong> Not provided';
+    return wrapper;
+  }
+  
   const ul = document.createElement('ul');
   ul.className = 'reference-list';
-  list.forEach((ref) => {
+  validRefs.forEach((ref) => {
     const li = document.createElement('li');
-    li.innerHTML = `<a href="${ref}" target="_blank" rel="noreferrer noopener">${ref}</a>`;
+    const a = document.createElement('a');
+    a.href = ref;
+    a.target = '_blank';
+    a.rel = 'noreferrer noopener';
+    a.textContent = ref;
+    li.appendChild(a);
     ul.appendChild(li);
   });
   wrapper.innerHTML = '<strong>References:</strong>';
@@ -399,6 +461,12 @@ function buildReferences(refs) {
 function buildDetailsGrid(details = {}) {
   const grid = document.createElement('div');
   grid.className = 'detail-grid';
+  
+  if (!details || typeof details !== 'object') {
+    grid.textContent = 'No additional detail provided.';
+    return grid;
+  }
+  
   const entries = Object.entries(details);
   if (!entries.length) {
     grid.textContent = 'No additional detail provided.';
@@ -408,7 +476,19 @@ function buildDetailsGrid(details = {}) {
   entries.forEach(([key, value]) => {
     const pill = document.createElement('span');
     pill.className = 'pill';
-    pill.innerHTML = `<strong>${key}:</strong> ${Array.isArray(value) ? value.join(', ') : value}`;
+    
+    let displayValue;
+    if (value === null || value === undefined) {
+      displayValue = 'N/A';
+    } else if (Array.isArray(value)) {
+      displayValue = value.join(', ') || 'Empty';
+    } else if (typeof value === 'object') {
+      displayValue = JSON.stringify(value);
+    } else {
+      displayValue = String(value);
+    }
+    
+    pill.innerHTML = `<strong>${escapeHtml(key)}:</strong> ${escapeHtml(displayValue)}`;
     grid.appendChild(pill);
   });
   return grid;
@@ -417,12 +497,14 @@ function buildDetailsGrid(details = {}) {
 function openModal(payload) {
   const modal = document.getElementById('modal');
   const body = document.getElementById('modal-body');
+  if (!modal || !body) return;
+  
   const isCategory = payload.findings;
   body.innerHTML = '';
 
   if (isCategory) {
     const title = document.createElement('h2');
-    title.textContent = payload.title;
+    title.textContent = payload.title || 'Findings';
     body.appendChild(title);
     payload.findings.forEach((finding) => body.appendChild(buildModalFinding(finding)));
   } else {
@@ -438,7 +520,7 @@ function buildModalFinding(finding) {
 
   const header = document.createElement('div');
   header.className = 'finding-header';
-  header.innerHTML = `${getCategoryIcon(finding.Category)} <strong>${finding.Issue}</strong>`;
+  header.innerHTML = `${getCategoryIcon(finding.Category)} <strong>${escapeHtml(finding.Issue || 'Unknown Issue')}</strong>`;
 
   const severityValue = normalizeSeverity(finding.Severity);
   const severity = document.createElement('span');
@@ -450,8 +532,8 @@ function buildModalFinding(finding) {
   const meta = document.createElement('div');
   meta.className = 'meta-row';
   meta.innerHTML = `
-    <span class="meta-chip">Category: ${finding.Category}</span>
-    <span class="meta-chip">Affected: ${finding.AffectedObject || 'Unknown'}</span>
+    <span class="meta-chip">Category: ${escapeHtml(finding.Category || 'Unknown')}</span>
+    <span class="meta-chip">Affected: ${escapeHtml(finding.AffectedObject || 'Unknown')}</span>
     <span class="meta-chip">Detected: ${formatDate(finding.DetectedDate)}</span>
   `;
 
@@ -461,11 +543,11 @@ function buildModalFinding(finding) {
 
   const impact = document.createElement('p');
   impact.className = 'impact';
-  impact.innerHTML = `<strong>Impact:</strong> ${finding.Impact || 'No impact provided.'}`;
+  impact.innerHTML = `<strong>Impact:</strong> ${escapeHtml(finding.Impact || 'No impact provided.')}`;
 
   const remediation = document.createElement('p');
   remediation.className = 'remediation';
-  remediation.innerHTML = `<strong>Remediation:</strong> ${finding.Remediation || 'No remediation provided.'}`;
+  remediation.innerHTML = `<strong>Remediation:</strong> ${escapeHtml(finding.Remediation || 'No remediation provided.')}`;
 
   const references = buildReferences(finding.RemediationReference || finding.References);
   const details = buildDetailsGrid(finding.Details);
@@ -475,7 +557,8 @@ function buildModalFinding(finding) {
 }
 
 function closeModal() {
-  document.getElementById('modal').hidden = true;
+  const modal = document.getElementById('modal');
+  if (modal) modal.hidden = true;
 }
 
 function reportIngestionResult(findings, sourceLabel = 'data source') {
@@ -493,6 +576,9 @@ async function loadRemoteJson(path) {
   try {
     setStatus('Loading data...', 'muted');
     const response = await fetch(path);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
     const data = await response.json();
     ingestData(data, 'sample file');
   } catch (error) {
@@ -515,6 +601,9 @@ function handleFileUpload(event) {
       setStatus('Could not parse the uploaded JSON file.', 'error');
     }
   };
+  reader.onerror = () => {
+    setStatus('Error reading file.', 'error');
+  };
   reader.readAsText(file);
 }
 
@@ -527,6 +616,8 @@ function ingestData(parsed, sourceLabel) {
 
 async function handleUrlLoad() {
   const urlInput = document.getElementById('remote-url');
+  if (!urlInput) return;
+  
   const url = urlInput.value.trim();
   if (!url) {
     setStatus('Enter a URL to load JSON from.', 'error');
@@ -547,6 +638,8 @@ async function handleUrlLoad() {
 
 function handlePastedJson() {
   const textarea = document.getElementById('paste-json');
+  if (!textarea) return;
+  
   const text = textarea.value.trim();
   if (!text) {
     setStatus('Paste audit JSON into the field to load it.', 'error');
@@ -585,14 +678,24 @@ function initTabs() {
 }
 
 function boot() {
-  document.getElementById('file-input').addEventListener('change', handleFileUpload);
-  document.getElementById('load-sample').addEventListener('click', () => loadRemoteJson('./sample-data/audit-report.json'));
-  document.getElementById('load-url').addEventListener('click', handleUrlLoad);
-  document.getElementById('load-pasted').addEventListener('click', handlePastedJson);
-  document.getElementById('close-modal').addEventListener('click', closeModal);
-  document.getElementById('modal').addEventListener('click', (e) => {
-    if (e.target.id === 'modal') closeModal();
-  });
+  const fileInput = document.getElementById('file-input');
+  const loadSample = document.getElementById('load-sample');
+  const loadUrl = document.getElementById('load-url');
+  const loadPasted = document.getElementById('load-pasted');
+  const closeModalBtn = document.getElementById('close-modal');
+  const modal = document.getElementById('modal');
+  
+  if (fileInput) fileInput.addEventListener('change', handleFileUpload);
+  if (loadSample) loadSample.addEventListener('click', () => loadRemoteJson('./sample-data/audit-report.json'));
+  if (loadUrl) loadUrl.addEventListener('click', handleUrlLoad);
+  if (loadPasted) loadPasted.addEventListener('click', handlePastedJson);
+  if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target.id === 'modal') closeModal();
+    });
+  }
+  
   initTabs();
   loadRemoteJson('./sample-data/audit-report.json');
 }
