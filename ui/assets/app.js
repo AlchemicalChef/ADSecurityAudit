@@ -268,7 +268,7 @@ function renderRiskCallouts(findings) {
   Object.entries(severityBuckets).forEach(([severity, container]) => {
     if (!container) return;
     container.innerHTML = '';
-    const filtered = findings.filter((f) => normalizeSeverity(f.Severity) === severity);
+    const filtered = findings.filter((f) => (f.Severity || 'Low') === severity);
     if (countDisplays[severity]) countDisplays[severity].textContent = filtered.length;
 
     if (!filtered.length) {

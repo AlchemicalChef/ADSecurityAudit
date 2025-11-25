@@ -169,22 +169,14 @@ body {
   align-self: flex-start;
 }
 
-.tab-shell {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(15, 23, 42, 0.88) 100%);
-  backdrop-filter: blur(8px);
-}
-
 .tab-bar {
   display: inline-flex;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.06);
-  padding: 8px;
-  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 6px;
+  border-radius: 12px;
   border: 1px solid var(--border);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+  margin-top: 4px;
 }
 
 .tab-button {
