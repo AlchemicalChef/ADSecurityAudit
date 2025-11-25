@@ -1,6 +1,6 @@
 @{
     RootModule = 'ADSecurityAudit.psm1'
-    ModuleVersion = '1.0.0'
+    ModuleVersion = '1.0.1'
     GUID = '7eaedb96-5ee9-4cdf-9ebf-c5618a0d2f14'
     Author = 'AlchemicalChef'
     CompanyName = 'Community'
@@ -23,7 +23,8 @@
         'Test-ADDomainTrusts',
         'Test-LAPSDeployment',
         'Test-AuditPolicyConfiguration',
-        'Test-ConstrainedDelegation'
+        'Test-ConstrainedDelegation',
+        'Test-ADDomainAdminEquivalence'
     )
     CmdletsToExport = @()
     VariablesToExport = @()
@@ -34,7 +35,28 @@
             LicenseUri = 'https://opensource.org/licenses/MIT'
             ProjectUri = 'https://github.com/AlchemicalChef/ADSecurityAudit'
             IconUri = ''
-            ReleaseNotes = 'Initial module manifest for ADSecurityAudit.'
+            ReleaseNotes = @"
+v1.0.1 - Bug Fixes
+- Fixed nested group detection in Test-ADPrivilegedGroups
+- Fixed LAPS schema path lookup
+- Fixed SID lookup in DCSync detection
+- Fixed variable ordering in Test-ADDomainAdminEquivalence
+- Fixed GUID case sensitivity issues
+- Added Test-ADDomainAdminEquivalence to exported functions
+- Improved ESC1 detection to check enrollment permissions
+- Improved audit policy checking to actually verify auditpol settings
+- Improved Kerberoasting detection with encryption type and password age checks
+- Fixed orphaned adminCount detection to use recursive group membership
+
+v1.0.0 - Initial Release
+- Core AD security auditing capabilities
+- Certificate Services vulnerability scanning
+- KRBTGT password age monitoring
+- Domain trust auditing
+- LAPS deployment verification
+- Audit policy validation
+- Constrained delegation analysis
+"@
         }
     }
 }
