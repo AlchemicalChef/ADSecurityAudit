@@ -49,10 +49,10 @@ function Test-ADReplicationSecurity {
                 $ace.ActiveDirectoryRights -match 'GenericAll') {
                 
                 # Check ObjectType GUID
-                $objectTypeGuid = $ace.ObjectType.ToString()
+                $objectTypeGuid = $ace.ObjectType.ToString().ToLower()
                 
                 foreach ($rightName in $dcsyncRights.Keys) {
-                    if ($objectTypeGuid -eq $dcsyncRights[$rightName] -or 
+                    if ($objectTypeGuid -eq $dcsyncRights[$rightName].ToLower() -or 
                         $ace.ActiveDirectoryRights -match 'GenericAll') {
                         $hasDCSyncRight = $true
                         $rightsFound += $rightName
@@ -62,30 +62,58 @@ function Test-ADReplicationSecurity {
             
             if ($hasDCSyncRight) {
                 # Try to resolve the identity to determine if it's a user or group
+                $principal = $null
+                $principalClass = 'Unknown'
+                
                 try {
-                    $principal = Get-ADObject -Filter "objectSid -eq '$identityReference'" -Properties objectClass -ErrorAction SilentlyContinue
+                    # First try to translate the identity reference to a SID
+                    $sid = $null
                     
-                    $finding = [ADSecurityFinding]::new()
-                    $finding.Category = 'Replication Security'
-                    $finding.Issue = 'Unauthorized DCSync Permissions'
-                    $finding.Severity = 'Critical'
-                    $finding.SeverityLevel = 4
-                    $finding.AffectedObject = $identityReference
-                    $finding.Description = "Non-standard principal '$identityReference' has DCSync replication rights on the domain."
-                    $finding.Impact = "This principal can perform DCSync attacks to retrieve password hashes for any account, including KRBTGT and Domain Admins. Attackers can then create Golden Tickets for persistent, unrestricted domain access."
-                    $finding.Remediation = "Remove replication rights immediately: `$acl = Get-Acl 'AD:\$domainDN'; Find and remove the ACE for '$identityReference'; Set-Acl -Path 'AD:\$domainDN' -AclObject `$acl"
-                    $finding.Details = @{
-                        Identity = $identityReference
-                        ObjectClass = if ($principal) { $principal.objectClass } else { 'Unknown' }
-                        ActiveDirectoryRights = $ace.ActiveDirectoryRights
-                        Rights = $rightsFound -join ', '
-                        ObjectType = $ace.ObjectType
+                    # Check if it's already a SID string
+                    if ($identityReference -match '^S-1-') {
+                        $sid = $identityReference
                     }
-                    $findings += $finding
+                    else {
+                        # Try to translate account name to SID
+                        try {
+                            $ntAccount = New-Object System.Security.Principal.NTAccount($identityReference)
+                            $sidObj = $ntAccount.Translate([System.Security.Principal.SecurityIdentifier])
+                            $sid = $sidObj.Value
+                        }
+                        catch {
+                            Write-Verbose "Could not translate '$identityReference' to SID: $_"
+                        }
+                    }
+                    
+                    # If we have a SID, look up the AD object
+                    if ($sid) {
+                        $principal = Get-ADObject -Filter "objectSid -eq '$sid'" -Properties objectClass -ErrorAction SilentlyContinue
+                        if ($principal) {
+                            $principalClass = $principal.objectClass
+                        }
+                    }
                 }
                 catch {
-                    Write-Warning "Could not resolve principal: $identityReference"
+                    Write-Verbose "Could not resolve principal: $identityReference - $_"
                 }
+                
+                $finding = [ADSecurityFinding]::new()
+                $finding.Category = 'Replication Security'
+                $finding.Issue = 'Unauthorized DCSync Permissions'
+                $finding.Severity = 'Critical'
+                $finding.SeverityLevel = 4
+                $finding.AffectedObject = $identityReference
+                $finding.Description = "Non-standard principal '$identityReference' has DCSync replication rights on the domain."
+                $finding.Impact = "This principal can perform DCSync attacks to retrieve password hashes for any account, including KRBTGT and Domain Admins. Attackers can then create Golden Tickets for persistent, unrestricted domain access."
+                $finding.Remediation = "Remove replication rights immediately: `$acl = Get-Acl 'AD:\$domainDN'; Find and remove the ACE for '$identityReference'; Set-Acl -Path 'AD:\$domainDN' -AclObject `$acl"
+                $finding.Details = @{
+                    Identity = $identityReference
+                    ObjectClass = $principalClass
+                    ActiveDirectoryRights = $ace.ActiveDirectoryRights.ToString()
+                    Rights = $rightsFound -join ', '
+                    ObjectType = $ace.ObjectType.ToString()
+                }
+                $findings += $finding
             }
         }
         
@@ -134,4 +162,3 @@ function Test-ADReplicationSecurity {
 }
 
 #endregion
-
