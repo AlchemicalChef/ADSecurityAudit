@@ -29,14 +29,41 @@ $Script:ProtectedGroups = @(
     'Distributed COM Users'
 )
 
-$Script:DangerousRights = @{
-    'GenericAll' = '00000000-0000-0000-0000-000000000000'
-    'WriteOwner' = '1131f6ae-9c07-11d1-f79f-00c04fc2dcd2'
+# Extended Rights GUIDs - these are for checking ACEs with ExtendedRight permissions
+# Note: WriteOwner, WriteDacl, GenericAll, GenericWrite are standard AD rights checked via 
+# ActiveDirectoryRights property, NOT via GUIDs
+$Script:DangerousExtendedRights = @{
     'DS-Replication-Get-Changes' = '1131f6aa-9c07-11d1-f79f-00c04fc2dcd2'
     'DS-Replication-Get-Changes-All' = '1131f6ad-9c07-11d1-f79f-00c04fc2dcd2'
     'DS-Replication-Get-Changes-In-Filtered-Set' = '89e95b76-444d-4c62-991a-0facbeda640c'
     'User-Force-Change-Password' = '00299570-246d-11d0-a768-00aa006e0529'
+    'DS-Replication-Manage-Topology' = '1131f6ac-9c07-11d1-f79f-00c04fc2dcd2'
+    'DS-Replication-Synchronize' = '1131f6ab-9c07-11d1-f79f-00c04fc2dcd2'
 }
+
+# Property GUIDs for checking WriteProperty permissions
+$Script:DangerousPropertyGuids = @{
+    'Member' = 'bf9679c0-0de6-11d0-a285-00aa003049e2'
+    'msDS-KeyCredentialLink' = '5b47d60f-6090-40b2-9f37-2a4de88f3063'
+    'ServicePrincipalName' = 'f3a64788-5306-11d1-a9c5-0000f80367c1'
+    'msDS-AllowedToActOnBehalfOfOtherIdentity' = '3f78c3e5-f79a-46bd-a0b8-9d18116ddc79'
+    'GPLink' = 'f30e3bc2-9ff0-11d1-b603-0000f80367c1'
+    'ms-Mcs-AdmPwd' = 'ba19577d-37b2-4921-a637-429a1d99da82'
+    'ms-LAPS-Password' = 'd95f499a-f5dd-4796-a2d5-6a3fba6a8e34'
+    'ms-LAPS-EncryptedPassword' = 'f3531ec6-6330-4f8e-8d39-7c7867f0e4a4'
+}
+
+# Standard AD rights that indicate dangerous permissions (checked via -match on ActiveDirectoryRights)
+$Script:DangerousStandardRights = @(
+    'GenericAll'
+    'GenericWrite'
+    'WriteDacl'
+    'WriteOwner'
+    'AllExtendedRights'
+)
+
+# Keep legacy variable name for backward compatibility
+$Script:DangerousRights = $Script:DangerousExtendedRights
 
 class ADSecurityFinding {
     [string]$Category
@@ -55,4 +82,3 @@ class ADSecurityFinding {
         $this.Details = @{}
     }
 }
-
