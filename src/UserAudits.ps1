@@ -24,7 +24,8 @@ function Test-ADUserSecurity {
                 'DoesNotRequirePreAuth', 'UseDESKeyOnly', 'AllowReversiblePasswordEncryption',
                 'PasswordNeverExpires', 'TrustedForDelegation', 'LastLogonDate', 'PasswordLastSet',
                 'ServicePrincipalNames', 'MemberOf', 'Enabled', 'DistinguishedName', 
-                'UserPrincipalName', 'adminCount', 'SamAccountName', 'SID'
+                'UserPrincipalName', 'adminCount', 'SamAccountName', 'SID', 'Description',
+                'msDS-SupportedEncryptionTypes', 'userAccountControl'
             )
         }
         
@@ -186,27 +187,91 @@ function Test-ADUserSecurity {
             }
             
             # Check for accounts with SPN set (potential Kerberoasting targets)
-            if ($user.ServicePrincipalNames.Count -gt 0) {
+            # Improved: differentiate between service accounts and regular users, check encryption types
+            if ($user.ServicePrincipalNames.Count -gt 0 -and $user.Enabled -eq $true) {
+                $isPrivileged = Test-PrivilegedUser -User $user
+                
+                # Check password age for risk assessment
+                $passwordAge = if ($user.PasswordLastSet) { (Get-Date) - $user.PasswordLastSet } else { [TimeSpan]::MaxValue }
+                $hasOldPassword = $passwordAge.Days -gt 365
+                
+                # Check supported encryption types
+                $encTypes = $user.'msDS-SupportedEncryptionTypes'
+                $usesRC4Only = $false
+                $usesAES = $false
+                
+                if ($encTypes) {
+                    # Bit flags: RC4=4, AES128=8, AES256=16
+                    $usesRC4Only = ($encTypes -band 4) -and -not ($encTypes -band 24)
+                    $usesAES = ($encTypes -band 24) -ne 0
+                }
+                else {
+                    # If not set, defaults to RC4
+                    $usesRC4Only = $true
+                }
+                
+                # Determine severity based on risk factors
+                $severity = 'Medium'
+                $severityLevel = 2
+                $riskFactors = @()
+                
+                if ($isPrivileged) {
+                    $severity = 'Critical'
+                    $severityLevel = 4
+                    $riskFactors += 'Privileged account'
+                }
+                elseif ($hasOldPassword -and $usesRC4Only) {
+                    $severity = 'High'
+                    $severityLevel = 3
+                    $riskFactors += 'Old password (>1 year)'
+                    $riskFactors += 'RC4 encryption only'
+                }
+                elseif ($hasOldPassword -or $usesRC4Only) {
+                    $severity = 'High'
+                    $severityLevel = 3
+                    if ($hasOldPassword) { $riskFactors += 'Old password (>1 year)' }
+                    if ($usesRC4Only) { $riskFactors += 'RC4 encryption only' }
+                }
+                else {
+                    $riskFactors += 'Standard service account'
+                }
+                
+                # Check if it looks like a service account (by naming convention or description)
+                $isLikelyServiceAccount = $user.SamAccountName -match '^(svc|service|app|sql|iis|web|http)[-_]' -or
+                                          $user.Description -match 'service|application'
+                
                 $finding = [ADSecurityFinding]::new()
                 $finding.Category = 'User Account'
-                $finding.Issue = 'User Account with SPN (Kerberoasting Risk)'
-                $finding.Severity = 'High'
-                $finding.SeverityLevel = 3
+                $finding.Issue = if ($isPrivileged) { 'Privileged Account with SPN (Kerberoasting Risk)' } else { 'User Account with SPN (Kerberoasting Risk)' }
+                $finding.Severity = $severity
+                $finding.SeverityLevel = $severityLevel
                 $finding.AffectedObject = $user.SamAccountName
-                $finding.Description = "User account has Service Principal Names (SPNs) configured, making it vulnerable to Kerberoasting attacks."
-                $finding.Impact = "Attackers can request service tickets for this account and crack the password offline."
-                $finding.Remediation = "Ensure this account uses a strong (25+ character) password, or migrate the service to a Group Managed Service Account (gMSA)."
+                $finding.Description = "User account has Service Principal Names (SPNs) configured, making it vulnerable to Kerberoasting attacks. Risk factors: $($riskFactors -join ', ')."
+                $finding.Impact = "Attackers can request service tickets for this account and crack the password offline. $(if ($isPrivileged) { 'As a privileged account, compromise could lead to domain-wide access.' })"
+                $finding.Remediation = @"
+1. $(if ($usesRC4Only) { 'Enable AES encryption: Set-ADUser -Identity ''$($user.SamAccountName)'' -KerberosEncryptionType AES256' })
+2. Ensure a strong (25+ character) password is set
+3. Consider migrating to a Group Managed Service Account (gMSA)
+4. $(if ($hasOldPassword) { 'Rotate the password immediately' })
+5. $(if ($isPrivileged) { 'Remove from privileged groups if service account does not require admin rights' })
+"@
                 $finding.Details = @{
                     DistinguishedName = $user.DistinguishedName
                     ServicePrincipalNames = $user.ServicePrincipalNames -join '; '
                     PasswordLastSet = $user.PasswordLastSet
+                    PasswordAgeDays = if ($passwordAge -ne [TimeSpan]::MaxValue) { $passwordAge.Days } else { 'Unknown' }
+                    IsPrivileged = $isPrivileged
+                    SupportsAES = $usesAES
+                    UsesRC4Only = $usesRC4Only
+                    RiskFactors = $riskFactors -join '; '
+                    IsLikelyServiceAccount = $isLikelyServiceAccount
                 }
                 $findings += $finding
             }
             
             if ($protectedUsersGroup) {
                 $isHighlyPrivileged = $Script:ProtectedGroups | Where-Object {
-                    $user.MemberOf -match "CN=$_,"
+                    $user.MemberOf -match "CN=$([regex]::Escape($_)),"
                 } | Where-Object { $_ -in @('Domain Admins', 'Enterprise Admins', 'Schema Admins') }
                 
                 if ($isHighlyPrivileged -and $user.MemberOf -notmatch 'CN=Protected Users,') {
@@ -246,7 +311,8 @@ function Test-PrivilegedUser {
     )
     
     foreach ($group in $Script:ProtectedGroups) {
-        if ($User.MemberOf -match "CN=$group,") {
+        # Use regex escape to handle special characters in group names
+        if ($User.MemberOf -match "CN=$([regex]::Escape($group)),") {
             return $true
         }
     }
