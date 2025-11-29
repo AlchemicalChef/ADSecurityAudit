@@ -60,14 +60,41 @@ function Start-ADSecurityAudit {
         Write-Verbose "Testing Domain Controller connectivity..."
         try {
             $domain = Get-ADDomain -ErrorAction Stop
-            $dc = Get-ADDomainController -Discover -ErrorAction Stop
-            
-            if (-not (Test-Connection -ComputerName $dc.HostName -Count 1 -Quiet)) {
-                Write-Warning "Cannot reach Domain Controller: $($dc.HostName). Proceeding anyway..."
+
+            # Attempt to discover multiple DCs for failover
+            $domainControllers = @()
+            try {
+                $domainControllers = Get-ADDomainController -Filter * -ErrorAction SilentlyContinue |
+                    Select-Object -First 3
             }
-            else {
-                Write-Verbose "Successfully connected to Domain Controller: $($dc.HostName)"
+            catch {
+                Write-Verbose "Could not enumerate all DCs, falling back to discovery: $_"
             }
+
+            if (-not $domainControllers -or $domainControllers.Count -eq 0) {
+                $domainControllers = @(Get-ADDomainController -Discover -ErrorAction Stop)
+            }
+
+            # Find a reachable DC
+            $connectedDC = $null
+            foreach ($dc in $domainControllers) {
+                Write-Verbose "Testing connectivity to DC: $($dc.HostName)"
+                if (Test-Connection -ComputerName $dc.HostName -Count 1 -Quiet) {
+                    $connectedDC = $dc
+                    Write-Verbose "Successfully connected to Domain Controller: $($dc.HostName)"
+                    break
+                }
+                else {
+                    Write-Verbose "Cannot reach Domain Controller: $($dc.HostName)"
+                }
+            }
+
+            if (-not $connectedDC) {
+                Write-Warning "Cannot reach any discovered Domain Controllers. Proceeding with default DC..."
+                $connectedDC = $domainControllers[0]
+            }
+
+            $dc = $connectedDC
         }
         catch {
             Write-Error "Failed to connect to Active Directory Domain: $_"
@@ -207,22 +234,53 @@ function Start-ADSecurityAudit {
             Export-ADSecurityReportHTML -Findings $allFindings -OutputPath $htmlPath -Domain $domain.DNSRoot -Summary $summary -Duration $duration -PrivilegedUsers $privilegedUsers
             Write-Host "HTML report exported to: $htmlPath" -ForegroundColor Green
             
-            # Export to CSV
+            # Export to CSV with formula injection protection
             $csvPath = Join-Path $ExportPath "AD_Security_Audit_$timestamp.csv"
-            $allFindings | Select-Object Category, Issue, Severity, AffectedObject, Description, Impact, Remediation, DetectedDate | 
+            $allFindings | Select-Object Category, Issue, Severity, AffectedObject, Description, Impact, Remediation, DetectedDate |
+                ForEach-Object {
+                    [PSCustomObject]@{
+                        Category = $_.Category | ConvertTo-SafeCsvValue
+                        Issue = $_.Issue | ConvertTo-SafeCsvValue
+                        Severity = $_.Severity | ConvertTo-SafeCsvValue
+                        AffectedObject = $_.AffectedObject | ConvertTo-SafeCsvValue
+                        Description = $_.Description | ConvertTo-SafeCsvValue
+                        Impact = $_.Impact | ConvertTo-SafeCsvValue
+                        Remediation = $_.Remediation | ConvertTo-SafeCsvValue
+                        DetectedDate = $_.DetectedDate
+                    }
+                } |
                 Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
             Write-Host "CSV report exported to: $csvPath" -ForegroundColor Green
         }
         
-        # Export privileged users report
+        # Export privileged users report with formula injection protection
         if ($privilegedUsers -and $privilegedUsers.Count -gt 0) {
             $privilegedUsersCsvPath = Join-Path $ExportPath "AD_Privileged_Users_$timestamp.csv"
-            
+
             $privilegedUsers | Select-Object SamAccountName, DisplayName, UserPrincipalName, Enabled, PasswordLastSet, `
                 PasswordNeverExpires, LastLogonDate, AdminCount, PrivilegedGroupsString, Title, Department, `
-                DoesNotRequirePreAuth, TrustedForDelegation, HasSPN, SPNCount | 
+                DoesNotRequirePreAuth, TrustedForDelegation, HasSPN, SPNCount |
+                ForEach-Object {
+                    [PSCustomObject]@{
+                        SamAccountName = $_.SamAccountName | ConvertTo-SafeCsvValue
+                        DisplayName = $_.DisplayName | ConvertTo-SafeCsvValue
+                        UserPrincipalName = $_.UserPrincipalName | ConvertTo-SafeCsvValue
+                        Enabled = $_.Enabled
+                        PasswordLastSet = $_.PasswordLastSet
+                        PasswordNeverExpires = $_.PasswordNeverExpires
+                        LastLogonDate = $_.LastLogonDate
+                        AdminCount = $_.AdminCount
+                        PrivilegedGroupsString = $_.PrivilegedGroupsString | ConvertTo-SafeCsvValue
+                        Title = $_.Title | ConvertTo-SafeCsvValue
+                        Department = $_.Department | ConvertTo-SafeCsvValue
+                        DoesNotRequirePreAuth = $_.DoesNotRequirePreAuth
+                        TrustedForDelegation = $_.TrustedForDelegation
+                        HasSPN = $_.HasSPN
+                        SPNCount = $_.SPNCount
+                    }
+                } |
                 Export-Csv -Path $privilegedUsersCsvPath -NoTypeInformation -Encoding UTF8
-            
+
             Write-Host "Privileged users report exported to: $privilegedUsersCsvPath" -ForegroundColor Green
         }
         

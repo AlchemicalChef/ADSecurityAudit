@@ -66,7 +66,13 @@ function Test-ADDomainAdminEquivalence {
 
         # Get DC computers EARLY - before any code that references it
         Write-Verbose "Enumerating Domain Controllers..."
-        $dcComputers = Get-ADComputer -Filter "primaryGroupID -eq 516" -Properties nTSecurityDescriptor, OperatingSystem -ErrorAction SilentlyContinue
+        $dcComputers = $null
+        try {
+            $dcComputers = Get-ADComputer -Filter "primaryGroupID -eq 516" -Properties nTSecurityDescriptor, OperatingSystem -ErrorAction Stop
+        }
+        catch {
+            Write-Verbose "Failed to enumerate Domain Controllers: $_"
+        }
         $dcNames = @()
         if ($dcComputers) {
             $dcNames = $dcComputers | ForEach-Object { $_.Name }
@@ -111,10 +117,22 @@ function Test-ADDomainAdminEquivalence {
 
         Write-Verbose "Collecting sensitive principals for equivalence correlation..."
         foreach ($groupName in $sensitiveGroupNames) {
-            $group = Get-ADGroup -Filter "Name -eq '$groupName'" -ErrorAction SilentlyContinue
+            $group = $null
+            try {
+                $group = Get-ADGroup -Filter "Name -eq '$groupName'" -ErrorAction Stop
+            }
+            catch {
+                Write-Verbose "Failed to get group '$groupName': $_"
+            }
             if (-not $group) { continue }
 
-            $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction SilentlyContinue | Where-Object { $_.objectClass -eq 'user' }
+            $members = $null
+            try {
+                $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction Stop | Where-Object { $_.objectClass -eq 'user' }
+            }
+            catch {
+                Write-Verbose "Failed to get members of group '$groupName': $_"
+            }
 
             foreach ($member in $members) {
                 if (-not $sensitivePrincipals.ContainsKey($member.SamAccountName)) {
@@ -128,16 +146,36 @@ function Test-ADDomainAdminEquivalence {
         # Get all protected members recursively
         $protectedMembers = [System.Collections.Generic.HashSet[string]]::new()
         foreach ($groupName in $sensitiveGroupNames) {
-            $group = Get-ADGroup -Filter "Name -eq '$groupName'" -ErrorAction SilentlyContinue
+            $group = $null
+            try {
+                $group = Get-ADGroup -Filter "Name -eq '$groupName'" -ErrorAction Stop
+            }
+            catch {
+                Write-Verbose "Failed to get protected group '$groupName': $_"
+            }
             if ($group) {
-                $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction SilentlyContinue
-                foreach ($m in $members) { [void]$protectedMembers.Add($m.DistinguishedName) }
+                $members = $null
+                try {
+                    $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction Stop
+                }
+                catch {
+                    Write-Verbose "Failed to get protected group members for '$groupName': $_"
+                }
+                if ($members) {
+                    foreach ($m in $members) { [void]$protectedMembers.Add($m.DistinguishedName) }
+                }
             }
         }
 
         # Find users with adminCount=1
-        $adminCountUsers = Get-ADUser -LDAPFilter "(adminCount=1)" -Properties adminCount, nTSecurityDescriptor -ErrorAction SilentlyContinue
-        
+        $adminCountUsers = $null
+        try {
+            $adminCountUsers = Get-ADUser -LDAPFilter "(adminCount=1)" -Properties adminCount, nTSecurityDescriptor -ErrorAction Stop
+        }
+        catch {
+            Write-Verbose "Failed to enumerate adminCount users: $_"
+        }
+
         foreach ($user in $adminCountUsers) {
             if (-not $protectedMembers.Contains($user.DistinguishedName) -and $user.SamAccountName -ne "krbtgt") {
                 $finding = [ADSecurityFinding]::new()
@@ -158,7 +196,13 @@ function Test-ADDomainAdminEquivalence {
 
         Write-Verbose "Scanning for Shadow Credentials (msDS-KeyCredentialLink)..."
 
-        $shadowCreds = Get-ADObject -LDAPFilter "(msDS-KeyCredentialLink=*)" -Properties msDS-KeyCredentialLink, samAccountName, objectClass -ErrorAction SilentlyContinue
+        $shadowCreds = $null
+        try {
+            $shadowCreds = Get-ADObject -LDAPFilter "(msDS-KeyCredentialLink=*)" -Properties msDS-KeyCredentialLink, samAccountName, objectClass -ErrorAction Stop
+        }
+        catch {
+            Write-Verbose "Failed to scan for Shadow Credentials: $_"
+        }
 
         foreach ($obj in $shadowCreds) {
             $finding = [ADSecurityFinding]::new()
@@ -179,7 +223,13 @@ function Test-ADDomainAdminEquivalence {
 
         Write-Verbose "Detecting Shadow Credentials attack surface (msDS-KeyCredentialLink write access)..."
 
-        $criticalComputers = Get-ADComputer -Filter * -Properties nTSecurityDescriptor, OperatingSystem -ErrorAction SilentlyContinue
+        $criticalComputers = $null
+        try {
+            $criticalComputers = Get-ADComputer -Filter * -Properties nTSecurityDescriptor, OperatingSystem -ResultPageSize 500 -ErrorAction Stop
+        }
+        catch {
+            Write-Verbose "Failed to enumerate computers for Shadow Credentials check: $_"
+        }
 
         foreach ($computer in $criticalComputers) {
             if (-not $computer.nTSecurityDescriptor) { continue }
@@ -208,7 +258,13 @@ function Test-ADDomainAdminEquivalence {
             $sam = $kvp.Key
             $dn = $kvp.Value
 
-            $user = Get-ADUser -Identity $dn -Properties nTSecurityDescriptor -ErrorAction SilentlyContinue
+            $user = $null
+            try {
+                $user = Get-ADUser -Identity $dn -Properties nTSecurityDescriptor -ErrorAction Stop
+            }
+            catch {
+                Write-Verbose "Failed to get user '$sam' for Shadow Credentials check: $_"
+            }
             if (-not $user -or -not $user.nTSecurityDescriptor) { continue }
 
             foreach ($ace in $user.nTSecurityDescriptor.Access) {
@@ -236,7 +292,13 @@ function Test-ADDomainAdminEquivalence {
             $sam = $kvp.Key
             $dn = $kvp.Value
 
-            $user = Get-ADUser -Identity $dn -Properties nTSecurityDescriptor -ErrorAction SilentlyContinue
+            $user = $null
+            try {
+                $user = Get-ADUser -Identity $dn -Properties nTSecurityDescriptor -ErrorAction Stop
+            }
+            catch {
+                Write-Verbose "Failed to get user '$sam' for WriteSPN check: $_"
+            }
             if (-not $user -or -not $user.nTSecurityDescriptor) { continue }
 
             foreach ($ace in $user.nTSecurityDescriptor.Access) {
@@ -259,9 +321,15 @@ function Test-ADDomainAdminEquivalence {
         }
 
         Write-Verbose "Scanning for SID History Injection..."
-        
-        $sidHistoryUsers = Get-ADUser -LDAPFilter "(sIDHistory=*)" -Properties sIDHistory -ErrorAction SilentlyContinue
-        
+
+        $sidHistoryUsers = $null
+        try {
+            $sidHistoryUsers = Get-ADUser -LDAPFilter "(sIDHistory=*)" -Properties sIDHistory -ErrorAction Stop
+        }
+        catch {
+            Write-Verbose "Failed to scan for SID History Injection: $_"
+        }
+
         foreach ($user in $sidHistoryUsers) {
             foreach ($sid in $user.sIDHistory) {
                 $sidStr = $sid.ToString()
@@ -303,8 +371,14 @@ function Test-ADDomainAdminEquivalence {
         }
 
         Write-Verbose "Scanning for legacy Logon Script abuse..."
-        
-        $scriptUsers = Get-ADUser -LDAPFilter "(scriptPath=*)" -Properties scriptPath -ErrorAction SilentlyContinue
+
+        $scriptUsers = $null
+        try {
+            $scriptUsers = Get-ADUser -LDAPFilter "(scriptPath=*)" -Properties scriptPath -ErrorAction Stop
+        }
+        catch {
+            Write-Verbose "Failed to scan for legacy Logon Scripts: $_"
+        }
         foreach ($user in $scriptUsers) {
             $path = $user.scriptPath
             
@@ -335,7 +409,13 @@ function Test-ADDomainAdminEquivalence {
         }
 
         foreach ($target in $controlTargets) {
-            $object = Get-ADObject -Identity $target.DistinguishedName -Properties nTSecurityDescriptor -ErrorAction SilentlyContinue
+            $object = $null
+            try {
+                $object = Get-ADObject -Identity $target.DistinguishedName -Properties nTSecurityDescriptor -ErrorAction Stop
+            }
+            catch {
+                Write-Verbose "Failed to get control target '$($target.Name)': $_"
+            }
             if (-not $object -or -not $object.nTSecurityDescriptor) { continue }
 
             foreach ($ace in $object.nTSecurityDescriptor.Access) {
@@ -356,7 +436,13 @@ function Test-ADDomainAdminEquivalence {
         }
 
         Write-Verbose "Performing AdminSDHolder ACL Analysis..."
-        $adminSdHolder = Get-ADObject -Identity "CN=AdminSDHolder,CN=System,$domainDN" -Properties nTSecurityDescriptor -ErrorAction SilentlyContinue
+        $adminSdHolder = $null
+        try {
+            $adminSdHolder = Get-ADObject -Identity "CN=AdminSDHolder,CN=System,$domainDN" -Properties nTSecurityDescriptor -ErrorAction Stop
+        }
+        catch {
+            Write-Verbose "Failed to get AdminSDHolder: $_"
+        }
         if ($adminSdHolder -and $adminSdHolder.nTSecurityDescriptor) {
             foreach ($ace in $adminSdHolder.nTSecurityDescriptor.Access) {
                 $principal = $ace.IdentityReference.Value
@@ -382,9 +468,15 @@ function Test-ADDomainAdminEquivalence {
         }
 
         Write-Verbose "Checking Constrained Delegation to Domain Controllers..."
-        
-        $delegationRisk = Get-ADObject -LDAPFilter "(msDS-AllowedToDelegateTo=*)" -Properties msDS-AllowedToDelegateTo, samAccountName -ErrorAction SilentlyContinue
-        
+
+        $delegationRisk = $null
+        try {
+            $delegationRisk = Get-ADObject -LDAPFilter "(msDS-AllowedToDelegateTo=*)" -Properties msDS-AllowedToDelegateTo, samAccountName -ErrorAction Stop
+        }
+        catch {
+            Write-Verbose "Failed to check Constrained Delegation: $_"
+        }
+
         foreach ($obj in $delegationRisk) {
             foreach ($targetSPN in $obj.'msDS-AllowedToDelegateTo') {
                 $targetHost = ($targetSPN -split '/')[1]
@@ -402,11 +494,23 @@ function Test-ADDomainAdminEquivalence {
         }
 
         Write-Verbose "Checking constrained delegation with protocol transition (S4U2Self abuse)..."
-        $constrainedDelegation = Get-ADObject -Filter {msDS-AllowedToDelegateTo -like '*'} -Properties msDS-AllowedToDelegateTo, servicePrincipalName, samAccountName, objectClass -ErrorAction SilentlyContinue
+        $constrainedDelegation = $null
+        try {
+            $constrainedDelegation = Get-ADObject -Filter {msDS-AllowedToDelegateTo -like '*'} -Properties msDS-AllowedToDelegateTo, servicePrincipalName, samAccountName, objectClass -ErrorAction Stop
+        }
+        catch {
+            Write-Verbose "Failed to check constrained delegation with protocol transition: $_"
+        }
 
         foreach ($delegator in $constrainedDelegation) {
             $allowedServices = $delegator.'msDS-AllowedToDelegateTo'
-            $delegatorDetails = Get-ADObject -Identity $delegator.DistinguishedName -Properties TrustedToAuthForDelegation -ErrorAction SilentlyContinue
+            $delegatorDetails = $null
+            try {
+                $delegatorDetails = Get-ADObject -Identity $delegator.DistinguishedName -Properties TrustedToAuthForDelegation -ErrorAction Stop
+            }
+            catch {
+                Write-Verbose "Failed to get delegator details for '$($delegator.samAccountName)': $_"
+            }
             $hasProtocolTransition = $delegatorDetails.TrustedToAuthForDelegation
 
             if ($hasProtocolTransition) {
@@ -429,9 +533,15 @@ function Test-ADDomainAdminEquivalence {
 
         Write-Verbose "Checking RBCD (AllowedToActOnBehalfOfOtherIdentity) on Domain Controllers..."
         foreach ($dc in $dcComputers) {
-            $dcObj = Get-ADComputer -Identity $dc.DistinguishedName -Properties 'msDS-AllowedToActOnBehalfOfOtherIdentity' -ErrorAction SilentlyContinue
+            $dcObj = $null
+            try {
+                $dcObj = Get-ADComputer -Identity $dc.DistinguishedName -Properties 'msDS-AllowedToActOnBehalfOfOtherIdentity' -ErrorAction Stop
+            }
+            catch {
+                Write-Verbose "Failed to get RBCD info for DC '$($dc.Name)': $_"
+            }
 
-            if ($dcObj.'msDS-AllowedToActOnBehalfOfOtherIdentity') {
+            if ($dcObj -and $dcObj.'msDS-AllowedToActOnBehalfOfOtherIdentity') {
                 try {
                     $sdBytes = $dcObj.'msDS-AllowedToActOnBehalfOfOtherIdentity'
                     if ($sdBytes) {
@@ -456,10 +566,22 @@ function Test-ADDomainAdminEquivalence {
 
         Write-Verbose "Checking for auditing high-privilege built-in groups..."
         foreach ($groupName in @('Print Operators', 'Server Operators', 'Backup Operators', 'Account Operators', 'DnsAdmins')) {
-            $group = Get-ADGroup -Filter "Name -eq '$groupName'" -ErrorAction SilentlyContinue
+            $group = $null
+            try {
+                $group = Get-ADGroup -Filter "Name -eq '$groupName'" -ErrorAction Stop
+            }
+            catch {
+                Write-Verbose "Failed to get built-in group '$groupName': $_"
+            }
             if (-not $group) { continue }
 
-            $members = Get-ADGroupMember -Identity $group -ErrorAction SilentlyContinue
+            $members = $null
+            try {
+                $members = Get-ADGroupMember -Identity $group -ErrorAction Stop
+            }
+            catch {
+                Write-Verbose "Failed to get members of built-in group '$groupName': $_"
+            }
 
             foreach ($member in $members) {
                 if ($member.objectClass -eq 'user') {

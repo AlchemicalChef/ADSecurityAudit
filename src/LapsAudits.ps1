@@ -54,7 +54,7 @@ function Test-LAPSDeployment {
         # If LAPS is installed, check computer coverage
         if ($lapsInstalled) {
             # Check for both legacy LAPS and Windows LAPS attributes
-            $computers = Get-ADComputer -Filter * -Properties 'ms-Mcs-AdmPwdExpirationTime', 'msLAPS-PasswordExpirationTime', OperatingSystem -ErrorAction Stop
+            $computers = Get-ADComputer -Filter * -Properties 'ms-Mcs-AdmPwdExpirationTime', 'msLAPS-PasswordExpirationTime', OperatingSystem -ResultPageSize 500 -ErrorAction Stop
             
             $computersWithLAPS = $computers | Where-Object { 
                 $_.'ms-Mcs-AdmPwdExpirationTime' -or $_.'msLAPS-PasswordExpirationTime' 

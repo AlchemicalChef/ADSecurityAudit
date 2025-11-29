@@ -20,29 +20,47 @@ function Get-ADPrivilegedUsers {
                 -PercentComplete (($currentGroup / $groupCount) * 100)
             
             try {
-                $group = Get-ADGroup -Filter "Name -eq '$groupName'" -Properties Members, Description -ErrorAction SilentlyContinue
-                
+                $group = $null
+                try {
+                    $group = Get-ADGroup -Filter "Name -eq '$groupName'" -Properties Members, Description -ErrorAction Stop
+                }
+                catch {
+                    Write-Verbose "Failed to get group '$groupName': $_"
+                }
+
                 if (-not $group) {
                     Write-Verbose "Group '$groupName' not found, skipping..."
                     continue
                 }
-                
+
                 Write-Verbose "Processing group: $groupName"
-                
+
                 # Get all members recursively
-                $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction SilentlyContinue
-                
+                $members = $null
+                try {
+                    $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction Stop
+                }
+                catch {
+                    Write-Verbose "Failed to get members of group '$groupName': $_"
+                }
+
                 if (-not $members) {
                     continue
                 }
-                
+
                 # Filter to only user objects
                 $userMembers = $members | Where-Object { $_.objectClass -eq 'user' }
-                
+
                 foreach ($member in $userMembers) {
                     # Get full user details
-                    $user = Get-ADUser -Identity $member -Properties * -ErrorAction SilentlyContinue
-                    
+                    $user = $null
+                    try {
+                        $user = Get-ADUser -Identity $member -Properties * -ErrorAction Stop
+                    }
+                    catch {
+                        Write-Verbose "Failed to get user details for '$($member.SamAccountName)': $_"
+                    }
+
                     if (-not $user) {
                         continue
                     }

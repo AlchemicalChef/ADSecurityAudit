@@ -87,7 +87,13 @@ function Test-ADReplicationSecurity {
                     
                     # If we have a SID, look up the AD object
                     if ($sid) {
-                        $principal = Get-ADObject -Filter "objectSid -eq '$sid'" -Properties objectClass -ErrorAction SilentlyContinue
+                        $principal = $null
+                        try {
+                            $principal = Get-ADObject -Filter "objectSid -eq '$sid'" -Properties objectClass -ErrorAction Stop
+                        }
+                        catch {
+                            Write-Verbose "Could not resolve SID '$sid': $_"
+                        }
                         if ($principal) {
                             $principalClass = $principal.objectClass
                         }
@@ -125,10 +131,22 @@ function Test-ADReplicationSecurity {
         
         foreach ($groupName in $suspiciousGroups) {
             try {
-                $group = Get-ADGroup -Filter "Name -eq '$groupName'" -ErrorAction SilentlyContinue
+                $group = $null
+                try {
+                    $group = Get-ADGroup -Filter "Name -eq '$groupName'" -ErrorAction Stop
+                }
+                catch {
+                    Write-Verbose "Could not get group '$groupName': $_"
+                }
                 if ($group) {
-                    $members = Get-ADGroupMember -Identity $group -ErrorAction SilentlyContinue
-                    
+                    $members = $null
+                    try {
+                        $members = Get-ADGroupMember -Identity $group -ErrorAction Stop
+                    }
+                    catch {
+                        Write-Verbose "Could not get members of group '$groupName': $_"
+                    }
+
                     if ($members) {
                         $finding = [ADSecurityFinding]::new()
                         $finding.Category = 'Replication Security'

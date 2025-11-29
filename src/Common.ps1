@@ -76,9 +76,68 @@ class ADSecurityFinding {
     [string]$AffectedObject
     [hashtable]$Details
     [datetime]$DetectedDate
-    
+
     ADSecurityFinding() {
         $this.DetectedDate = Get-Date
         $this.Details = @{}
+    }
+}
+
+# Retry helper function for AD queries with exponential backoff
+function Invoke-ADQueryWithRetry {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$Query,
+
+        [int]$MaxAttempts = 3,
+        [int]$DelaySeconds = 2,
+        [string]$OperationName = "AD Query"
+    )
+
+    $attempt = 0
+    $lastError = $null
+
+    while ($attempt -lt $MaxAttempts) {
+        $attempt++
+        try {
+            return (& $Query)
+        }
+        catch {
+            $lastError = $_
+            Write-Verbose "$OperationName failed (attempt $attempt/$MaxAttempts): $_"
+
+            if ($attempt -lt $MaxAttempts) {
+                $wait = $DelaySeconds * [math]::Pow(2, $attempt - 1)
+                Start-Sleep -Seconds $wait
+            }
+        }
+    }
+
+    Write-Warning "$OperationName failed after $MaxAttempts attempts: $lastError"
+    return $null
+}
+
+# Sanitize values for CSV export to prevent formula injection
+function ConvertTo-SafeCsvValue {
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromPipeline)]
+        [AllowNull()]
+        [AllowEmptyString()]
+        [string]$Value
+    )
+
+    process {
+        if ([string]::IsNullOrEmpty($Value)) {
+            return $Value
+        }
+
+        # Prefix with single quote if value starts with characters that could be interpreted as formulas
+        if ($Value -match '^[=+\-@\t\r]') {
+            return "'" + $Value
+        }
+
+        return $Value
     }
 }

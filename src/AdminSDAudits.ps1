@@ -108,12 +108,26 @@ function Test-AdminSDHolder {
         $protectedGroupMembers = @{}
         foreach ($groupName in $Script:ProtectedGroups) {
             try {
-                $group = Get-ADGroup -Filter "Name -eq '$groupName'" -ErrorAction SilentlyContinue
+                $group = $null
+                try {
+                    $group = Get-ADGroup -Filter "Name -eq '$groupName'" -ErrorAction Stop
+                }
+                catch {
+                    Write-Verbose "Failed to get protected group '$groupName': $_"
+                }
                 if ($group) {
-                    $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction SilentlyContinue
-                    foreach ($member in $members) {
-                        if ($member.objectClass -eq 'user') {
-                            $protectedGroupMembers[$member.SamAccountName] = $true
+                    $members = $null
+                    try {
+                        $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction Stop
+                    }
+                    catch {
+                        Write-Verbose "Failed to get members of protected group '$groupName': $_"
+                    }
+                    if ($members) {
+                        foreach ($member in $members) {
+                            if ($member.objectClass -eq 'user') {
+                                $protectedGroupMembers[$member.SamAccountName] = $true
+                            }
                         }
                     }
                 }

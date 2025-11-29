@@ -19,8 +19,14 @@ function Test-ADDangerousPermissions {
         
         # Get Enterprise Key Admins group (if it exists - only in Windows Server 2016+)
         try {
-            $ekaGroup = Get-ADGroup -Filter "Name -eq 'Enterprise Key Admins'" -ErrorAction SilentlyContinue
-            
+            $ekaGroup = $null
+            try {
+                $ekaGroup = Get-ADGroup -Filter "Name -eq 'Enterprise Key Admins'" -ErrorAction Stop
+            }
+            catch {
+                Write-Verbose "Enterprise Key Admins group not found (expected on pre-2016 domains): $_"
+            }
+
             if ($ekaGroup) {
                 Write-Verbose "Found Enterprise Key Admins group, checking for over-privileged ACEs..."
                 
@@ -101,8 +107,14 @@ Remove the over-privileged ACE and grant only the required permissions:
         
         foreach ($ouDN in $criticalOUs) {
             try {
-                $ou = Get-ADObject -Identity $ouDN -Properties nTSecurityDescriptor -ErrorAction SilentlyContinue
-                
+                $ou = $null
+                try {
+                    $ou = Get-ADObject -Identity $ouDN -Properties nTSecurityDescriptor -ErrorAction Stop
+                }
+                catch {
+                    Write-Verbose "Could not get OU '$ouDN': $_"
+                }
+
                 if (-not $ou) {
                     continue
                 }

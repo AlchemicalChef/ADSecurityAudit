@@ -43,10 +43,10 @@ function Test-ADCertificateServices {
             # Get enrollment permissions
             $templateAcl = $null
             try {
-                $templateAcl = Get-Acl -Path "AD:$($template.DistinguishedName)" -ErrorAction SilentlyContinue
+                $templateAcl = Get-Acl -Path "AD:$($template.DistinguishedName)" -ErrorAction Stop
             }
             catch {
-                Write-Verbose "Could not get ACL for template '$templateName'"
+                Write-Verbose "Could not get ACL for template '$templateName': $_"
             }
             
             # Check if low-privileged users can enroll
@@ -197,8 +197,14 @@ function Test-ADCertificateServices {
             $certAuthorities = Get-ADObject -SearchBase "CN=Enrollment Services,$pkiContainer" -Filter * -Properties * -ErrorAction Stop
             
             foreach ($ca in $certAuthorities) {
-                $acl = Get-Acl -Path "AD:$($ca.DistinguishedName)" -ErrorAction SilentlyContinue
-                
+                $acl = $null
+                try {
+                    $acl = Get-Acl -Path "AD:$($ca.DistinguishedName)" -ErrorAction Stop
+                }
+                catch {
+                    Write-Verbose "Could not get ACL for CA '$($ca.Name)': $_"
+                }
+
                 if ($acl) {
                     foreach ($access in $acl.Access) {
                         # Check for dangerous permissions on CA

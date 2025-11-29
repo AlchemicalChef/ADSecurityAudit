@@ -22,19 +22,37 @@ function Test-ADPrivilegedGroups {
                 -PercentComplete (($currentGroup / $groupCount) * 100)
             
             try {
-                $group = Get-ADGroup -Filter "Name -eq '$groupName'" -Properties Members, MemberOf -ErrorAction SilentlyContinue
-                
+                $group = $null
+                try {
+                    $group = Get-ADGroup -Filter "Name -eq '$groupName'" -Properties Members, MemberOf -ErrorAction Stop
+                }
+                catch {
+                    Write-Verbose "Failed to get group '$groupName': $_"
+                }
+
                 if (-not $group) {
                     continue
                 }
-                
+
                 # Get recursive members for total count and user analysis
-                $recursiveMembers = Get-ADGroupMember -Identity $group -Recursive -ErrorAction SilentlyContinue
-                
+                $recursiveMembers = $null
+                try {
+                    $recursiveMembers = Get-ADGroupMember -Identity $group -Recursive -ErrorAction Stop
+                }
+                catch {
+                    Write-Verbose "Failed to get recursive members of '$groupName': $_"
+                }
+
                 # Get direct members separately to detect nested groups
                 # (Get-ADGroupMember -Recursive only returns leaf objects, not groups)
-                $directMembers = Get-ADGroupMember -Identity $group -ErrorAction SilentlyContinue
-                
+                $directMembers = $null
+                try {
+                    $directMembers = Get-ADGroupMember -Identity $group -ErrorAction Stop
+                }
+                catch {
+                    Write-Verbose "Failed to get direct members of '$groupName': $_"
+                }
+
                 if (-not $recursiveMembers -and -not $directMembers) {
                     continue
                 }
@@ -85,8 +103,14 @@ function Test-ADPrivilegedGroups {
                 # Check for disabled or inactive users in privileged groups
                 $userMembers = $recursiveMembers | Where-Object { $_.objectClass -eq 'user' }
                 foreach ($member in $userMembers) {
-                    $userDetails = Get-ADUser -Identity $member -Properties Enabled, LastLogonDate -ErrorAction SilentlyContinue
-                    
+                    $userDetails = $null
+                    try {
+                        $userDetails = Get-ADUser -Identity $member -Properties Enabled, LastLogonDate -ErrorAction Stop
+                    }
+                    catch {
+                        Write-Verbose "Failed to get user details for '$($member.SamAccountName)': $_"
+                    }
+
                     if (-not $userDetails) {
                         continue
                     }

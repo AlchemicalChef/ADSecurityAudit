@@ -33,11 +33,18 @@ function Test-ADUserSecurity {
             $getUserParams['SearchBase'] = $SearchBase
         }
         
+        $getUserParams['ResultPageSize'] = 500
         $users = Get-ADUser @getUserParams
-        
+
         Write-Verbose "Analyzing $($users.Count) user accounts..."
-        
-        $protectedUsersGroup = Get-ADGroup -Filter "Name -eq 'Protected Users'" -ErrorAction SilentlyContinue
+
+        $protectedUsersGroup = $null
+        try {
+            $protectedUsersGroup = Get-ADGroup -Filter "Name -eq 'Protected Users'" -ErrorAction Stop
+        }
+        catch {
+            Write-Verbose "Failed to get Protected Users group: $_"
+        }
         
         $userCount = $users.Count
         $currentUser = 0
