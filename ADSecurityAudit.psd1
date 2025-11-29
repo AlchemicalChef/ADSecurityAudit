@@ -1,6 +1,6 @@
 @{
     RootModule = 'ADSecurityAudit.psm1'
-    ModuleVersion = '1.0.1'
+    ModuleVersion = '1.1.0'
     GUID = '7eaedb96-5ee9-4cdf-9ebf-c5618a0d2f14'
     Author = 'AlchemicalChef'
     CompanyName = 'Community'
@@ -24,18 +24,29 @@
         'Test-LAPSDeployment',
         'Test-AuditPolicyConfiguration',
         'Test-ConstrainedDelegation',
-        'Test-ADDomainAdminEquivalence'
+        'Test-ADDomainAdminEquivalence',
+        'Invoke-ADQueryWithRetry',
+        'ConvertTo-SafeCsvValue'
     )
     CmdletsToExport = @()
     VariablesToExport = @()
     AliasesToExport = @()
     PrivateData = @{
         PSData = @{
-            Tags = @('ActiveDirectory', 'Security', 'Audit')
+            Tags = @('ActiveDirectory', 'Security', 'Audit', 'Compliance')
             LicenseUri = 'https://opensource.org/licenses/MIT'
             ProjectUri = 'https://github.com/AlchemicalChef/ADSecurityAudit'
             IconUri = ''
             ReleaseNotes = @"
+v1.1.0 - Reliability & Security Improvements
+- SECURITY: Fixed CSV injection vulnerability in report exports
+- Added Domain Controller failover support for improved reliability
+- Added Invoke-ADQueryWithRetry helper for network resilience (exponential backoff)
+- Added result pagination for large AD queries (prevents timeouts in large environments)
+- Converted 40+ silent failures to proper try/catch with verbose logging
+- Improved error handling across all audit modules
+- Added ConvertTo-SafeCsvValue function for safe CSV exports
+
 v1.0.1 - Bug Fixes
 - Fixed nested group detection in Test-ADPrivilegedGroups
 - Fixed LAPS schema path lookup

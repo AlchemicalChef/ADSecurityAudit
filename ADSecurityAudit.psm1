@@ -1,4 +1,4 @@
-<#[
+<#
 .SYNOPSIS
     Comprehensive Active Directory Audit and Reporting
 
@@ -9,12 +9,12 @@
 
 .NOTES
     Author: AlchemicalChef
-    Version: 1.0.1
+    Version: 1.1.0
     Requires: Active Directory PowerShell Module, Windows Server 2016+
 
 .EXAMPLE
     Import-Module .\ADSecurityAudit.psm1
-    Start-ADSecurityAudit -Verbose -ExportPath "C:\\Reports"
+    Start-ADSecurityAudit -Verbose -ExportPath "C:\Reports"
 #>
 #Requires -Modules ActiveDirectory
 #Requires -RunAsAdministrator
@@ -68,5 +68,7 @@ Export-ModuleMember -Function @(
     'Test-LAPSDeployment',
     'Test-AuditPolicyConfiguration',
     'Test-ConstrainedDelegation',
-    'Test-ADDomainAdminEquivalence'
+    'Test-ADDomainAdminEquivalence',
+    'Invoke-ADQueryWithRetry',
+    'ConvertTo-SafeCsvValue'
 )

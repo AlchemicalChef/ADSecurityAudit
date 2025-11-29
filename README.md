@@ -1,5 +1,3 @@
-**This is very alpha, please use at your own risk until I can test edge cases**
-
 # Active Directory Security Audit 
 
 A comprehensive PowerShell module for identifying misconfigurations and security vulnerabilities within Active Directory environments.
@@ -253,7 +251,23 @@ Always:
 
 ## Version History
 
-### v1.0 (Release)
+### v1.1.0 (Current)
+- **Security Fix**: Fixed CSV injection vulnerability in report exports
+- Added Domain Controller failover support for improved reliability
+- Added `Invoke-ADQueryWithRetry` helper for network resilience with exponential backoff
+- Added result pagination for large AD queries (prevents timeouts in large environments)
+- Converted 40+ silent failures to proper try/catch with verbose logging
+- Improved error handling across all audit modules
+- Added `ConvertTo-SafeCsvValue` function for safe CSV exports
+
+### v1.0.1
+- Fixed nested group detection in Test-ADPrivilegedGroups
+- Fixed LAPS schema path lookup
+- Fixed SID lookup in DCSync detection
+- Improved ESC1 detection to check enrollment permissions
+- Improved Kerberoasting detection with encryption type and password age checks
+
+### v1.0.0
 - Added Certificate Services vulnerability scanning (ESC1/ESC2/ESC3)
 - Added KRBTGT password age monitoring
 - Added comprehensive trust relationship auditing
@@ -262,7 +276,7 @@ Always:
 - Added constrained delegation analysis
 - Enhanced reporting with new critical findings
 
-### v0.1 (Original)
+### v0.1.0
 - Initial release with core AD security auditing
 - Privileged group analysis
 - DCSync detection

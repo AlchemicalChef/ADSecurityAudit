@@ -1,0 +1,40 @@
+# Output files and reports
+*.log
+*.txt
+AD_Security_Audit_*.json
+AD_Security_Audit_*.html
+AD_Security_Audit_*.csv
+AD_Privileged_Users_*.csv
+ADSecurityAudit_Log_*.txt
+
+# PowerShell transcripts
+*_transcript.txt
+
+# Temp files
+*.tmp
+*.temp
+~$*
+
+# IDE and editor files
+.vscode/
+.vs/
+*.suo
+*.user
+*.sln.docstates
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Secrets and credentials (should never be committed)
+*.pfx
+*.p12
+*.key
+*.pem
+credentials.json
+secrets.json
+.env
