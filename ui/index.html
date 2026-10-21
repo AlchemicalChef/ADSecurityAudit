@@ -4,12 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AD Security Audit Dashboard</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
-      rel="stylesheet"
-    />
     <link rel="stylesheet" href="./assets/styles.css" />
   </head>
   <body>
@@ -29,12 +23,12 @@
             <span class="badge">DNS security posture</span>
             <span class="badge">Privileged identity hygiene</span>
           </div>
-          <p id="status-message" class="muted">Waiting for data…</p>
+          <p id="status-message" class="muted">Waiting for data...</p>
         </div>
         <div class="hero-actions">
           <label class="file-upload">
             <input type="file" id="file-input" accept="application/json" />
-            <span>📁 Upload audit JSON</span>
+            <span>Upload audit JSON</span>
           </label>
           <button id="load-sample" class="ghost">Load sample report</button>
           <div class="input-row">
@@ -46,6 +40,7 @@
             <textarea id="paste-json" rows="4" placeholder="Paste audit JSON text here"></textarea>
             <button id="load-pasted" type="button">Load pasted JSON</button>
           </label>
+          <button id="print-view" class="ghost no-print" type="button">Print / Save as PDF (current tab)</button>
           <div class="helper-text">Uploads stay in your browser; no data leaves your device.</div>
         </div>
       </section>
@@ -70,9 +65,9 @@
               <div class="card-top">
                 <div>
                   <p class="label">Domain Admins</p>
-                  <p class="count" id="domain-admins-count">—</p>
+                  <p class="count" id="domain-admins-count">-</p>
                 </div>
-                <span class="icon">🛡️</span>
+                
               </div>
               <p class="helper">Accounts that control the domain scope.</p>
             </article>
@@ -80,9 +75,9 @@
               <div class="card-top">
                 <div>
                   <p class="label">Enterprise Admins</p>
-                  <p class="count" id="enterprise-admins-count">—</p>
+                  <p class="count" id="enterprise-admins-count">-</p>
                 </div>
-                <span class="icon">🏢</span>
+                
               </div>
               <p class="helper">Forest-wide administrative identities.</p>
             </article>
@@ -90,9 +85,9 @@
               <div class="card-top">
                 <div>
                   <p class="label">Schema Admins</p>
-                  <p class="count" id="schema-admins-count">—</p>
+                  <p class="count" id="schema-admins-count">-</p>
                 </div>
-                <span class="icon">📐</span>
+                
               </div>
               <p class="helper">Principals that can alter the AD schema.</p>
             </article>
@@ -115,7 +110,7 @@
                   <p class="label">Critical</p>
                   <p class="count" id="critical-count">0</p>
                 </div>
-                <span class="icon">⚠️</span>
+                <span class="sev-dot sev-dot-critical"></span>
               </div>
               <p class="helper">Issues that need immediate attention.</p>
               <div class="progress"><span id="critical-progress"></span></div>
@@ -126,7 +121,7 @@
                   <p class="label">High</p>
                   <p class="count" id="high-count">0</p>
                 </div>
-                <span class="icon">🚨</span>
+                <span class="sev-dot sev-dot-high"></span>
               </div>
               <p class="helper">Elevated risk requiring near-term remediation.</p>
               <div class="progress"><span id="high-progress"></span></div>
@@ -137,7 +132,7 @@
                   <p class="label">Medium</p>
                   <p class="count" id="medium-count">0</p>
                 </div>
-                <span class="icon">📋</span>
+                <span class="sev-dot sev-dot-medium"></span>
               </div>
               <p class="helper">Configuration gaps to plan into backlog.</p>
               <div class="progress"><span id="medium-progress"></span></div>
@@ -148,7 +143,7 @@
                   <p class="label">Low</p>
                   <p class="count" id="low-count">0</p>
                 </div>
-                <span class="icon">ℹ️</span>
+                <span class="sev-dot sev-dot-low"></span>
               </div>
               <p class="helper">Informational items for visibility.</p>
               <div class="progress"><span id="low-progress"></span></div>
@@ -156,8 +151,68 @@
           </div>
           <div class="meta-row-bar">
             <span id="total-count" class="pill">0 findings</span>
-            <span id="last-updated" class="pill">Waiting for data…</span>
+            <span id="last-updated" class="pill">Waiting for data...</span>
           </div>
+        </section>
+
+        <section class="panel" id="priority-panel" hidden>
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Prioritized remediation order</p>
+              <h2>Where to start</h2>
+              <p class="muted">Findings ranked worst-first by severity, then by how risky their category is overall. A starting work order, not a replacement for reviewing every finding.</p>
+            </div>
+          </div>
+          <ol id="priority-list" class="priority-list"></ol>
+        </section>
+
+        <section class="panel" id="risk-score-panel" hidden>
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Risk score &amp; maturity</p>
+              <h2>Global risk score, ANSSI maturity, and MITRE ATT&amp;CK coverage</h2>
+              <p class="muted">Higher score is worse. The global score equals the worst category's score - an environment is only as strong as its weakest risk area.</p>
+            </div>
+          </div>
+          <div class="scoring-grid">
+            <div class="score-panel">
+              <h3>Global Risk Score</h3>
+              <div class="gauge-wrap">
+                <div id="risk-gauge"></div>
+                <div class="score-meta">
+                  <p id="risk-score-meta"></p>
+                </div>
+              </div>
+            </div>
+            <div class="maturity-panel">
+              <h3>ANSSI Maturity Level</h3>
+              <div class="maturity-head" id="maturity-head">- <small>/ 5</small></div>
+              <p id="maturity-label" style="color:var(--ink); margin: 6px 0 4px;"></p>
+              <div class="maturity-stepper" id="maturity-stepper"></div>
+            </div>
+          </div>
+          <h3>Risk by Category</h3>
+          <div class="category-bars-svg" id="category-bars-svg">No category scores yet.</div>
+          <div id="mitre-section" hidden>
+            <h3>&#128506; MITRE ATT&amp;CK Technique Summary</h3>
+            <div style="overflow-x: auto;">
+              <table class="mitre-table">
+                <thead><tr><th>Technique</th><th>Name</th><th>Findings</th></tr></thead>
+                <tbody id="mitre-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="control-paths-panel" hidden>
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Attack paths</p>
+              <h2>Control Paths to Tier-0</h2>
+              <p class="muted">Chained group-membership, ACL, and ownership relationships that let a non-privileged principal reach a Tier-0 object. No single hop here need look critical on its own.</p>
+            </div>
+          </div>
+          <div id="control-paths-list"></div>
         </section>
 
         <section class="panel">
@@ -222,7 +277,7 @@
 
     <div id="modal" class="modal" hidden>
       <div class="modal-content">
-        <button class="close" id="close-modal" aria-label="Close details">✕</button>
+        <button class="close" id="close-modal" aria-label="Close details">X</button>
         <div id="modal-body"></div>
       </div>
     </div>

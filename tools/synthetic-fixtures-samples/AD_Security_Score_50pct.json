@@ -1,0 +1,136 @@
+{
+  "GeneratedDate": "2026-09-21T20:17:13.1064281+00:00",
+  "Domain": "fabrikam.local",
+  "ModuleVersion": "1.30.2",
+  "TotalScore": 100,
+  "MaturityLevel": 1,
+  "MaturityLabel": "Level 1 - Critical gaps (basic hygiene not met)",
+  "CategoryScores": [
+    {
+      "Category": "Certificate Services",
+      "Score": 100,
+      "Findings": 16,
+      "RawPoints": 580
+    },
+    {
+      "Category": "Uncategorized (Synthetic)",
+      "Score": 99,
+      "Findings": 9,
+      "RawPoints": 340
+    },
+    {
+      "Category": "Group Policy",
+      "Score": 92,
+      "Findings": 6,
+      "RawPoints": 200
+    },
+    {
+      "Category": "Legacy Auth & Name Poisoning",
+      "Score": 92,
+      "Findings": 5,
+      "RawPoints": 200
+    },
+    {
+      "Category": "Domain Security",
+      "Score": 89,
+      "Findings": 6,
+      "RawPoints": 180
+    },
+    {
+      "Category": "Coercion & Relay Exposure",
+      "Score": 87,
+      "Findings": 4,
+      "RawPoints": 160
+    },
+    {
+      "Category": "Admin Equivalence",
+      "Score": 87,
+      "Findings": 4,
+      "RawPoints": 160
+    },
+    {
+      "Category": "Kerberos Delegation",
+      "Score": 77,
+      "Findings": 4,
+      "RawPoints": 120
+    },
+    {
+      "Category": "Managed Service Accounts",
+      "Score": 71,
+      "Findings": 3,
+      "RawPoints": 100
+    },
+    {
+      "Category": "User Account",
+      "Score": 71,
+      "Findings": 3,
+      "RawPoints": 100
+    },
+    {
+      "Category": "Kerberos Security",
+      "Score": 71,
+      "Findings": 3,
+      "RawPoints": 100
+    },
+    {
+      "Category": "Stale-Object & Hygiene Depth",
+      "Score": 71,
+      "Findings": 3,
+      "RawPoints": 100
+    },
+    {
+      "Category": "Replication Security",
+      "Score": 64,
+      "Findings": 2,
+      "RawPoints": 80
+    },
+    {
+      "Category": "AdminSDHolder",
+      "Score": 64,
+      "Findings": 2,
+      "RawPoints": 80
+    },
+    {
+      "Category": "Domain Trusts",
+      "Score": 64,
+      "Findings": 2,
+      "RawPoints": 80
+    },
+    {
+      "Category": "Schema Integrity",
+      "Score": 64,
+      "Findings": 2,
+      "RawPoints": 80
+    },
+    {
+      "Category": "Attack Paths",
+      "Score": 52,
+      "Findings": 2,
+      "RawPoints": 60
+    },
+    {
+      "Category": "Read-Only Domain Controller Security Posture",
+      "Score": 52,
+      "Findings": 2,
+      "RawPoints": 60
+    },
+    {
+      "Category": "DNS Security",
+      "Score": 52,
+      "Findings": 2,
+      "RawPoints": 60
+    },
+    {
+      "Category": "Exchange-in-AD Privilege Escalation",
+      "Score": 40,
+      "Findings": 1,
+      "RawPoints": 40
+    },
+    {
+      "Category": "Dangerous Permissions",
+      "Score": 40,
+      "Findings": 1,
+      "RawPoints": 40
+    }
+  ]
+}

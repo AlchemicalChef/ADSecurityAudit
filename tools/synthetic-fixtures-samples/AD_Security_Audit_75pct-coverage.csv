@@ -1,0 +1,2 @@
+"TestName","Status","FindingCount","ErrorMessage"
+"(no coverage data for this run)","NotAvailable","","Test coverage tracking was introduced in module version 1.24.0. This export either predates that version, or its AD_Security_TestCoverage_<timestamp>.json sidecar was not kept alongside the findings JSON being recreated from. This is a limitation of the export itself, not evidence that every check ran cleanly."

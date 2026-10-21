@@ -1,15 +1,26 @@
 #region Audit Policy Configuration Audits
 
 function Test-AuditPolicyConfiguration {
+    <#
+    .SYNOPSIS
+        Audits per-DC audit policy configuration and SACL presence on
+        AdminSDHolder / the domain root.
+    #>
     [CmdletBinding()]
     param()
-    
+
     Write-Verbose "Starting audit policy configuration audit..."
     $findings = @()
-    
+
     try {
         # Get domain controllers to check audit policies
-        $domainControllers = Get-ADDomainController -Filter *
+        #
+        # Get-ADSecurityAuditDomainController (Common.ps1), not a bare
+        # Get-ADDomainController -Filter *: the latter queries the
+        # forest-wide Configuration container and returns every domain's
+        # DCs regardless of -Server, so a multi-domain-forest audit could
+        # silently run auditpol checks against the WRONG domain's DCs.
+        $domainControllers = Get-ADSecurityAuditDomainController -Server (Get-ADSecurityAuditTargetServerValue)
         
         Write-Verbose "Checking audit policies on $($domainControllers.Count) domain controller(s)..."
         
@@ -117,6 +128,9 @@ function Test-AuditPolicyConfiguration {
                         "- $($_.Subcategory): Current='$($_.CurrentSetting)', Required='$($_.RequiredSetting)'"
                     }
                     
+                    $finding.EstimatedEffort = 'Medium - a domain-wide GPO change validated across every DC.'
+                    $finding.KnownRisks = 'Purely additive logging; essentially no access-control risk, but increases Security event log volume and may need log-size/SIEM capacity planning.'
+                    $finding.BackupRollback = 'Easy - revert the GPO setting; effective at next Group Policy refresh, no data loss.'
                     $finding.Remediation = @"
 Configure the following audit policies via Group Policy (Computer Config > Windows Settings > Security Settings > Advanced Audit Policy):
 
@@ -145,6 +159,9 @@ $(($missingPolicies | ForEach-Object { "auditpol /set /subcategory:`"$($_.Subcat
                 $finding.AffectedObject = $dcName
                 $finding.Description = "Could not remotely verify audit policies on domain controller '$dcName'. Manual verification is required."
                 $finding.Impact = "Without proper audit policies, security incidents cannot be detected or investigated effectively. Critical events may go unlogged."
+                $finding.EstimatedEffort = 'Medium - a GPO change that must be validated on every DC, and confirmed not to be overridden by the legacy (non-advanced) Audit Policy category, a well-documented conflict between the two models.'
+                $finding.KnownRisks = 'Purely additive logging with essentially no access-control impact; the main practical effect is increased Security event log volume, which may require increasing log size/retention or SIEM ingestion capacity.'
+                $finding.BackupRollback = 'Easy - revert the GPO setting; effective at next Group Policy refresh, no data loss.'
                 $finding.Remediation = @"
 Verify and enable advanced audit policies on this DC by running:
 auditpol /get /category:*
@@ -171,11 +188,12 @@ Configure via Group Policy: Computer Config > Windows Settings > Security Settin
         
         # Check for SACL on sensitive AD objects
         try {
-            $domain = Get-ADDomain
+            $__adServer = Get-ADSecurityAuditTargetServerValue
+            $domain = Get-ADDomain -Server $__adServer
             $domainRoot = $domain.DistinguishedName
             
             # Check if AdminSDHolder has auditing configured
-            $adminSDHolder = Get-ADObject "CN=AdminSDHolder,CN=System,$domainRoot" -Properties nTSecurityDescriptor -ErrorAction Stop
+            $adminSDHolder = Get-ADObject "CN=AdminSDHolder,CN=System,$domainRoot" -Properties nTSecurityDescriptor -Server $__adServer -ErrorAction Stop
             $acl = $adminSDHolder.nTSecurityDescriptor
             
             $hasAuditRules = $false
@@ -196,6 +214,9 @@ Configure via Group Policy: Computer Config > Windows Settings > Security Settin
                 $finding.AffectedObject = 'AdminSDHolder'
                 $finding.Description = "The AdminSDHolder object does not have audit rules (SACL) configured to log access attempts."
                 $finding.Impact = "Changes to privileged group permissions and access attempts to critical AD objects will not be logged, hindering incident detection."
+                $finding.EstimatedEffort = 'Low - adding a SACL entry to one object.'
+                $finding.KnownRisks = 'No access-control impact; increases Security event log volume for changes to this specific object.'
+                $finding.BackupRollback = 'Easy - remove the SACL entry; effective immediately, no data loss.'
                 $finding.Remediation = @"
 Configure SACL on AdminSDHolder to audit modifications:
 1. Open ADSI Edit
@@ -217,7 +238,7 @@ Set-Acl `$path `$acl
             }
             
             # Check domain root SACL
-            $domainObj = Get-ADObject $domainRoot -Properties nTSecurityDescriptor -ErrorAction Stop
+            $domainObj = Get-ADObject $domainRoot -Properties nTSecurityDescriptor -Server $__adServer -ErrorAction Stop
             $domainAcl = $domainObj.nTSecurityDescriptor
             
             $hasDomainAuditRules = $false
@@ -239,6 +260,9 @@ Set-Acl `$path `$acl
                 $finding.Description = "The domain root object does not have audit rules (SACL) configured."
                 $finding.Impact = "Critical changes to domain-level permissions and replication rights will not be logged."
                 $finding.Remediation = "Configure SACL on the domain root to audit Write Property, Modify Permissions, and Extended Rights for Everyone."
+                $finding.EstimatedEffort = 'Low - adding a SACL entry to one object.'
+                $finding.KnownRisks = 'No access-control impact; increases Security event log volume for changes to this specific object.'
+                $finding.BackupRollback = 'Easy - remove the SACL entry; effective immediately, no data loss.'
                 $finding.Details = @{
                     DistinguishedName = $domainRoot
                 }

@@ -1,0 +1,130 @@
+{
+  "GeneratedDate": "2026-09-21T20:17:13.5635484+00:00",
+  "Domain": "fabrikam.local",
+  "ModuleVersion": "1.30.2",
+  "TotalScore": 92,
+  "MaturityLevel": 1,
+  "MaturityLabel": "Level 1 - Critical gaps (basic hygiene not met)",
+  "CategoryScores": [
+    {
+      "Category": "Legacy Auth & Name Poisoning",
+      "Score": 92,
+      "Findings": 5,
+      "RawPoints": 200
+    },
+    {
+      "Category": "Coercion & Relay Exposure",
+      "Score": 87,
+      "Findings": 4,
+      "RawPoints": 160
+    },
+    {
+      "Category": "Group Policy",
+      "Score": 87,
+      "Findings": 4,
+      "RawPoints": 160
+    },
+    {
+      "Category": "Admin Equivalence",
+      "Score": 78,
+      "Findings": 3,
+      "RawPoints": 120
+    },
+    {
+      "Category": "Uncategorized (Synthetic)",
+      "Score": 78,
+      "Findings": 3,
+      "RawPoints": 120
+    },
+    {
+      "Category": "Replication Security",
+      "Score": 64,
+      "Findings": 2,
+      "RawPoints": 80
+    },
+    {
+      "Category": "Managed Service Accounts",
+      "Score": 64,
+      "Findings": 2,
+      "RawPoints": 80
+    },
+    {
+      "Category": "User Account",
+      "Score": 64,
+      "Findings": 2,
+      "RawPoints": 80
+    },
+    {
+      "Category": "Domain Trusts",
+      "Score": 64,
+      "Findings": 2,
+      "RawPoints": 80
+    },
+    {
+      "Category": "Domain Security",
+      "Score": 64,
+      "Findings": 2,
+      "RawPoints": 80
+    },
+    {
+      "Category": "Certificate Services",
+      "Score": 64,
+      "Findings": 2,
+      "RawPoints": 80
+    },
+    {
+      "Category": "Schema Integrity",
+      "Score": 64,
+      "Findings": 2,
+      "RawPoints": 80
+    },
+    {
+      "Category": "Attack Paths",
+      "Score": 40,
+      "Findings": 1,
+      "RawPoints": 40
+    },
+    {
+      "Category": "Kerberos Security",
+      "Score": 40,
+      "Findings": 1,
+      "RawPoints": 40
+    },
+    {
+      "Category": "Exchange-in-AD Privilege Escalation",
+      "Score": 40,
+      "Findings": 1,
+      "RawPoints": 40
+    },
+    {
+      "Category": "Kerberos Delegation",
+      "Score": 40,
+      "Findings": 1,
+      "RawPoints": 40
+    },
+    {
+      "Category": "Read-Only Domain Controller Security Posture",
+      "Score": 40,
+      "Findings": 1,
+      "RawPoints": 40
+    },
+    {
+      "Category": "AdminSDHolder",
+      "Score": 40,
+      "Findings": 1,
+      "RawPoints": 40
+    },
+    {
+      "Category": "Stale-Object & Hygiene Depth",
+      "Score": 40,
+      "Findings": 1,
+      "RawPoints": 40
+    },
+    {
+      "Category": "DNS Security",
+      "Score": 40,
+      "Findings": 1,
+      "RawPoints": 40
+    }
+  ]
+}

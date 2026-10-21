@@ -2,12 +2,39 @@
 
 function Get-ADPrivilegedUsers {
     [CmdletBinding()]
-    param()
+    param(
+        # Defense-in-depth for multi-domain forests: when this function is
+        # called standalone (not via Start-ADSecurityAudit -Server, which
+        # already installs a session-wide override before this ever runs),
+        # there was previously no way to target a domain other than the
+        # one the calling session ambiently resolves to. Passing -Server
+        # here installs the same Set-ADSecurityAuditTargetServer override
+        # Start-ADSecurityAudit uses, for the duration of this call only,
+        # and only if one isn't ALREADY active - so calling this from
+        # within a Start-ADSecurityAudit -Server run is unaffected.
+        [Parameter()]
+        [string]$Server
+    )
     
     Write-Verbose "Enumerating all privileged users..."
+
+    $__adAuditServerAlreadyActive = [bool](Get-ADSecurityAuditActiveServerOverride)
+    if ($Server -and -not $__adAuditServerAlreadyActive) {
+        # Resolve-ADSecurityAuditTargetServer, not the raw -Server value:
+        # resolves to the domain's PDC Emulator specifically, so this
+        # standalone call targets the exact same single, deterministic DC
+        # Start-ADSecurityAudit itself would use for this domain, not an
+        # arbitrary DC-locator pick.
+        Set-ADSecurityAuditTargetServer -Server (Resolve-ADSecurityAuditTargetServer -Server $Server)
+    }
     
     try {
-        $domain = Get-ADDomain
+        # Resolved once, explicitly passed to every live AD call below -
+        # not relying on the $PSDefaultParameterValues injection alone.
+        # $null when no override is active, which Get-AD* cmdlets treat
+        # identically to -Server being omitted entirely.
+        $__adServer = Get-ADSecurityAuditActiveServerOverride
+        $domain = if ($__adServer) { Get-ADDomain -Server $__adServer } else { Get-ADDomain }
         $privilegedUsersList = [System.Collections.ArrayList]::new()
         $processedUsers = @{}
         
@@ -22,7 +49,12 @@ function Get-ADPrivilegedUsers {
             try {
                 $group = $null
                 try {
-                    $group = Get-ADGroup -Filter "Name -eq '$groupName'" -Properties Members, Description -ErrorAction Stop
+                    $group = if ($__adServer) {
+                        Get-ADGroup -Filter "Name -eq '$groupName'" -Server $__adServer -Properties Members, Description -ErrorAction Stop
+                    }
+                    else {
+                        Get-ADGroup -Filter "Name -eq '$groupName'" -Properties Members, Description -ErrorAction Stop
+                    }
                 }
                 catch {
                     Write-Verbose "Failed to get group '$groupName': $_"
@@ -38,7 +70,12 @@ function Get-ADPrivilegedUsers {
                 # Get all members recursively
                 $members = $null
                 try {
-                    $members = Get-ADGroupMember -Identity $group -Recursive -ErrorAction Stop
+                    $members = if ($__adServer) {
+                        Get-ADGroupMember -Identity $group -Recursive -Server $__adServer -ErrorAction Stop
+                    }
+                    else {
+                        Get-ADGroupMember -Identity $group -Recursive -ErrorAction Stop
+                    }
                 }
                 catch {
                     Write-Verbose "Failed to get members of group '$groupName': $_"
@@ -55,7 +92,12 @@ function Get-ADPrivilegedUsers {
                     # Get full user details
                     $user = $null
                     try {
-                        $user = Get-ADUser -Identity $member -Properties * -ErrorAction Stop
+                        $user = if ($__adServer) {
+                            Get-ADUser -Identity $member -Server $__adServer -Properties * -ErrorAction Stop
+                        }
+                        else {
+                            Get-ADUser -Identity $member -Properties * -ErrorAction Stop
+                        }
                     }
                     catch {
                         Write-Verbose "Failed to get user details for '$($member.SamAccountName)': $_"
@@ -116,6 +158,11 @@ function Get-ADPrivilegedUsers {
     catch {
         Write-Error "Error enumerating privileged users: $_"
         throw
+    }
+    finally {
+        if ($Server -and -not $__adAuditServerAlreadyActive) {
+            Clear-ADSecurityAuditTargetServer
+        }
     }
 }
 

@@ -6,6 +6,19 @@ AD_Security_Audit_*.html
 AD_Security_Audit_*.csv
 AD_Privileged_Users_*.csv
 ADSecurityAudit_Log_*.txt
+AD_Security_Score_*.json
+
+# Exception: curated reference samples for
+# tools/New-ADSecurityAuditSyntheticFixtures.ps1 (see
+# tools/synthetic-fixtures-samples/README.md) - intentionally checked in,
+# unlike real audit output elsewhere in the repo, which the blanket
+# patterns above exist to keep out. Without this exception, `git add`
+# would silently ignore these files despite matching the patterns above
+# exactly (same filename shape by design - they ARE the same file type,
+# just synthetic).
+!tools/synthetic-fixtures-samples/*.json
+!tools/synthetic-fixtures-samples/*.html
+!tools/synthetic-fixtures-samples/*.csv
 
 # PowerShell transcripts
 *_transcript.txt

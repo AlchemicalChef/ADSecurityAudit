@@ -1,0 +1,2201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AD Security Assessment Report - Unknown (recreated from JSON export - Domain was not persisted in AD_Security_Audit_*.json)</title>
+    <style>
+        :root {
+            --font-sans: -apple-system, "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: 'Consolas', 'SFMono-Regular', Menlo, Monaco, monospace;
+            --bg: #f4f6f8;
+            --surface: #ffffff;
+            --ink: #1f2937;
+            --ink-muted: #5b6472;
+            --border: #e2e6ea;
+            --brand: #1f4e79;
+            --critical: #b3261e;
+            --critical-bg: #fdf1f0;
+            --high: #c8590b;
+            --high-bg: #fdf5ec;
+            --medium: #8a6200;
+            --medium-bg: #fdf8ec;
+            --low: #5b6472;
+            --low-bg: #f4f5f6;
+            --good: #1a7f4e;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); line-height: 1.6; color: var(--ink); background: var(--bg); padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; background: var(--surface); padding: 30px; box-shadow: 0 1px 3px rgba(15,23,42,0.08); border-radius: 8px; border: 1px solid var(--border); }
+        h1 { color: var(--ink); border-bottom: 3px solid var(--brand); padding-bottom: 15px; margin-bottom: 20px; font-size: 1.7em; }
+        h2 { color: var(--ink); margin-top: 30px; margin-bottom: 15px; padding: 10px 14px; background: var(--bg); border-left: 4px solid var(--brand); }
+        h3 { color: var(--ink-muted); margin-top: 20px; margin-bottom: 10px; }
+        .header-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 30px; padding: 20px; background: var(--bg); border-radius: 5px; border: 1px solid var(--border); }
+        .header-info div { padding: 10px; }
+        .header-info strong { display: block; color: var(--ink-muted); font-size: 0.9em; margin-bottom: 5px; }
+        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0; }
+        .summary-card { display: block; padding: 22px; border-radius: 8px; text-align: center; text-decoration: none; border: 1px solid var(--border); border-top: 4px solid transparent; background: var(--surface); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+        .summary-card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(15,23,42,0.08); }
+        .summary-card-empty { cursor: default; opacity: 0.6; }
+        .summary-card-empty:hover { transform: none; box-shadow: none; }
+        .summary-card .count { font-size: 2.6em; font-weight: 700; margin-bottom: 6px; color: var(--ink); }
+        .summary-card .label { font-size: 0.95em; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-muted); font-weight: 600; }
+        .critical-card { border-top-color: var(--critical); }
+        .critical-card .count { color: var(--critical); }
+        .high-card { border-top-color: var(--high); }
+        .high-card .count { color: var(--high); }
+        .medium-card { border-top-color: var(--medium); }
+        .medium-card .count { color: var(--medium); }
+        .low-card { border-top-color: var(--low); }
+        .low-card .count { color: var(--low); }
+        .finding { margin-bottom: 15px; padding: 20px; border-radius: 5px; border-left: 5px solid; background: var(--surface); border: 1px solid var(--border); border-left-width: 5px; }
+        .finding.critical { border-left-color: var(--critical); background: var(--critical-bg); }
+        .finding.high { border-left-color: var(--high); background: var(--high-bg); }
+        .finding.medium { border-left-color: var(--medium); background: var(--medium-bg); }
+        .finding.low { border-left-color: var(--low); background: var(--low-bg); }
+        details.finding { padding: 0; }
+        details.finding[open] { padding-bottom: 5px; }
+        details.finding > summary { list-style: none; cursor: pointer; padding: 20px; }
+        details.finding > summary::-webkit-details-marker { display: none; }
+        details.finding > summary::before { content: '\25B8'; display: inline-block; margin-right: 10px; color: var(--ink-muted); transition: transform 0.15s ease; }
+        details.finding[open] > summary::before { transform: rotate(90deg); }
+        .finding-body { padding: 0 20px 15px; }
+        .section-toolbar { display: flex; justify-content: flex-end; gap: 10px; margin: -8px 0 10px; }
+        .toggle-all-btn { background: var(--bg); border: 1px solid var(--border); color: var(--ink); padding: 5px 12px; border-radius: 4px; font-size: 0.85em; cursor: pointer; }
+        .toggle-all-btn:hover { background: #e8ebee; }
+        .finding-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .finding-title { font-size: 1.3em; font-weight: 600; color: var(--ink); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .count-badge { display: inline-block; background: var(--bg); color: var(--ink); font-size: 0.6em; font-weight: 700; padding: 3px 10px; border-radius: 12px; vertical-align: middle; letter-spacing: 0.3px; border: 1px solid var(--border); }
+        .finding-instance-list { list-style: none; border-top: 1px solid var(--border); margin-top: 5px; max-height: 420px; overflow-y: auto; }
+        .finding-instance { padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .finding-instance:last-child { border-bottom: none; }
+        .finding-instance-object { font-weight: 600; color: var(--ink); font-family: var(--font-mono); font-size: 13px; word-break: break-word; }
+        .meta-code { font-family: var(--font-mono); font-size: 13px; color: var(--ink); word-break: break-word; }
+        .finding-instance-desc { color: var(--ink-muted); margin-top: 4px; line-height: 1.5; }
+        .finding-instance-date { color: var(--ink-muted); font-size: 0.8em; margin-top: 4px; }
+        .severity-badge { padding: 6px 15px; border-radius: 20px; font-weight: 700; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; color: #fff; }
+        .severity-critical { background: var(--critical); }
+        .severity-high { background: var(--high); }
+        .severity-medium { background: var(--medium); }
+        .severity-low { background: var(--low); }
+        .finding-meta { display: flex; gap: 20px; margin-bottom: 15px; font-size: 0.9em; color: var(--ink-muted); flex-wrap: wrap; }
+        .finding-meta span { display: flex; align-items: center; }
+        .finding-meta strong { margin-right: 5px; color: var(--ink); }
+        .finding-section { margin: 15px 0; padding: 15px; background: var(--surface); border-radius: 4px; border: 1px solid var(--border); }
+        .finding-section h4 { color: var(--ink-muted); margin-bottom: 10px; font-size: 1em; text-transform: uppercase; letter-spacing: 0.5px; }
+        .finding-section p { color: var(--ink); line-height: 1.7; }
+        .privileged-users-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9em; }
+        .privileged-users-table th { background: var(--brand); color: #fff; padding: 12px; text-align: left; font-weight: 600; }
+        .privileged-users-table td { padding: 10px; border-bottom: 1px solid var(--border); }
+        .privileged-users-table tr:nth-child(even) { background: var(--bg); }
+        .privileged-users-table tr:hover { background: #eaf1f8; }
+        .status-enabled { color: var(--good); font-weight: bold; }
+        .status-disabled { color: var(--critical); font-weight: bold; }
+        .footer { margin-top: 50px; padding-top: 20px; border-top: 2px solid var(--border); text-align: center; color: var(--ink-muted); font-size: 0.9em; }
+        .warning-box { background: #fdf8ec; border-left: 4px solid var(--medium); padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .warning-box p { color: #6b4e00; margin: 5px 0; }
+
+        /* Risk score, maturity & category visuals - inline hand-built SVG, no chart library, no CDN */
+        .scoring-grid { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr); gap: 20px; margin: 20px 0; }
+        @media (max-width: 700px) { .scoring-grid { grid-template-columns: 1fr; } }
+        .score-panel, .maturity-panel { padding: 25px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); }
+        .gauge-wrap { display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap; }
+        .gauge-svg-wrap { position: relative; width: 160px; height: 160px; flex: none; }
+        .gauge-svg-wrap svg { width: 100%; height: 100%; }
+        .gauge-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .gauge-center .num { font-size: 2.3em; font-weight: 700; color: var(--ink); line-height: 1; }
+        .gauge-center .of { font-size: 0.85em; color: var(--ink-muted); }
+        .score-meta { color: var(--ink); }
+        .score-meta .hint { font-size: 0.85em; color: var(--ink-muted); margin-top: 8px; }
+        .maturity-stepper { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
+        .maturity-chip { flex: 1; min-width: 88px; padding: 8px 6px; border-radius: 4px; background: var(--surface); border: 1px solid var(--border); color: var(--ink-muted); font-size: 0.78em; text-align: center; }
+        .maturity-chip .lvl { display: block; font-weight: 700; font-size: 1.15em; }
+        .maturity-chip.reached { background: #eaf5ef; border-color: var(--good); color: var(--good); }
+        .maturity-chip.current { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .maturity-head { font-size: 2.2em; font-weight: 700; color: var(--ink); }
+        .maturity-head small { font-size: 0.45em; color: var(--ink-muted); font-weight: normal; }
+        .mitre-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        .mitre-table th { background: var(--brand); color: #fff; padding: 10px; text-align: left; }
+        .mitre-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .mitre-table tr:nth-child(even) { background: var(--bg); }
+        .mitre-id { font-family: var(--font-mono); font-size: 13px; color: var(--brand); font-weight: 600; }
+        .mitre-bar-cell { display: flex; align-items: center; gap: 8px; }
+        .mitre-bar-track { display: block; width: 100px; height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; flex: none; }
+        .mitre-bar-fill { display: block; height: 100%; background: var(--brand); border-radius: 5px; }
+        .tag-mitre { font-family: var(--font-mono); font-size: 12px; background: #eaf2f8; color: #2471a3; padding: 2px 6px; border-radius: 3px; }
+        .tag-anssi { font-family: var(--font-mono); font-size: 12px; background: #f4ecf7; color: #6c3483; padding: 2px 6px; border-radius: 3px; }
+
+        /* v1.20.2: one shared style for path/command-style code content
+           (currently just the control-path hop chain), so it reads as a
+           distinct "code block" rather than a plain paragraph that happens
+           to use a monospace font. Same --font-mono/size as the inline
+           mono elements above, for a consistent code type scale throughout. */
+        .code-block { font-family: var(--font-mono); font-size: 13px; line-height: 1.6; color: var(--ink); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; word-break: break-word; }
+
+        /* Prioritized remediation order */
+        .priority-list { list-style: none; margin: 15px 0; }
+        .priority-item { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; background: var(--surface); }
+        .priority-rank { font-weight: 700; color: var(--ink-muted); font-size: 1.2em; text-align: center; }
+        .priority-item a { color: var(--ink); text-decoration: none; font-weight: 600; }
+        .priority-item a:hover { text-decoration: underline; }
+        .priority-cat { color: var(--ink-muted); font-size: 0.85em; font-weight: 400; display: block; margin-top: 2px; }
+
+        /* Control path diagram */
+        .control-path-diagram { margin: 10px 0 4px; }
+        .control-path-diagram svg { width: 100%; height: auto; max-width: 640px; display: block; }
+
+        /* v1.20.2: without an explicit max-width, this SVG's viewBox
+           (700 units wide) stretched to fill the full container width
+           (~1300px+), inflating every font-size/stroke in it by ~1.9x -
+           this is why "Risk by Category" text rendered oversized relative
+           to the rest of the report. Capping at 700px keeps 1 viewBox unit
+           equal to 1 real pixel, matching the size the text was authored at. */
+        .category-bars-svg svg { width: 100%; height: auto; max-width: 700px; display: block; }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; border: none; }
+            .toggle-all-btn { display: none; }
+            .no-print { display: none !important; }
+            .report-nav { position: static !important; }
+        }
+
+        /* v1.20.1: severity dots replacing emoji on section headings - a
+           solid color square carries the same at-a-glance severity cue
+           without relying on emoji glyph support/rendering consistency. */
+        .sev-dot { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 10px; vertical-align: middle; }
+        .sev-dot-critical { background: var(--critical); }
+        .sev-dot-high { background: var(--high); }
+        .sev-dot-medium { background: var(--medium); }
+        .sev-dot-low { background: var(--low); }
+
+        /* v1.20.1: sticky mini table-of-contents so a leadership reader can
+           jump straight to the risk picture and an IT reader can jump
+           straight to evidence, without scrolling or using find-in-page. */
+        .report-nav { position: sticky; top: 0; z-index: 10; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .report-nav-links { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
+        .report-nav a { color: var(--ink); text-decoration: none; font-size: 0.85em; font-weight: 600; padding: 6px 10px; border-radius: 4px; }
+        .report-nav a:hover { background: var(--bg); }
+        .print-btn { background: var(--brand); color: #fff; border: none; padding: 8px 14px; border-radius: 4px; font-size: 0.85em; font-weight: 600; cursor: pointer; flex: none; }
+        .print-btn:hover { background: #163d5f; }
+
+        /* v1.20.1: divider between the leadership-facing front section
+           (Executive Summary through Control Paths) and the full technical
+           finding-by-finding detail that follows. */
+        .section-divider { margin: 40px 0 10px; border: none; border-top: 2px solid var(--border); }
+        .section-divider-label { text-align: center; margin-top: -13px; }
+        .section-divider-label span { background: var(--surface); padding: 0 16px; color: var(--ink-muted); font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Active Directory Security Assessment Report</h1>
+        
+        <div class="warning-box">
+            <p><strong>CONFIDENTIAL SECURITY REPORT</strong></p>
+            <p>This report contains sensitive security information about your Active Directory environment. Handle with care and share only with authorized personnel.</p>
+        </div>
+        <div class="warning-box" style="background:#eef3fb; border-color:#2f5fa8;">
+            <p><strong>RUN SCOPE INFORMATION</strong> - 2 note(s) about how this run was scoped that may affect how to read specific findings below.</p>
+            <table class="mitre-table">
+                <tr><th>Category</th><th>Note</th></tr>
+                <tr><td>Recreated From JSON</td><td>This report was recreated from a JSON findings export, not from a live/snapshot run. 39 finding(s) in this export were missing supporting information (Estimated Effort / Known Risks / Backup-Rollback / Operational Notes) that the current module version normally provides - this typically happens when the export predates that field being added, or predates that specific finding&#39;s current wording. Those sections were backfilled with CURRENT guidance for the finding&#39;s Issue type where available; this is representative guidance, not necessarily an exact reproduction of what the original run&#39;s module version would have shown. Any finding that still shows one of these sections missing has no current guidance available to backfill from.</td></tr>
+                <tr><td>Test Coverage Not Available</td><td>No test coverage information is available for this run - this report cannot say which checks ran, passed, failed, or were excluded. Test coverage tracking was introduced in module version 1.24.0; this export either predates that version, or its AD_Security_TestCoverage_&lt;timestamp&gt;.json sidecar was not kept alongside the findings JSON being recreated from. This is a limitation of the export itself, not evidence that every check ran cleanly - if you need coverage information for this run, it does not exist and cannot be reconstructed from the findings alone.</td></tr>
+            </table>
+        </div>
+        <div class="warning-box" style="background:#fdf8ec; border-color:#8a6200;" id="test-coverage">
+            <p><strong>TEST COVERAGE</strong> - 1 coverage entry(ies) were present for this run, but could not be rendered as a per-check list (their data did not match the expected shape even after automatic repair). This is unexpected - if you can, please keep the raw AD_Security_TestCoverage_*.json for this run so the cause can be investigated.</p>
+        </div>
+        
+        <div class="header-info">
+            <div><strong>DOMAIN</strong><span style="font-size: 1.2em; color: #1f2937;">Unknown (recreated from JSON export - Domain was not persisted in AD_Security_Audit_*.json)</span></div>
+            <div><strong>REPORT DATE</strong><span style="font-size: 1.2em; color: #1f2937;">2026-09-21 20:17:13</span></div>
+            <div><strong>SCAN DURATION</strong><span style="font-size: 1.2em; color: #1f2937;">0 seconds</span></div>
+            <div><strong>TOTAL FINDINGS</strong><span style="font-size: 1.2em; color: #1f2937;">41</span></div>
+        </div>
+
+        <nav class="report-nav no-print" aria-label="Report sections">
+            <div class="report-nav-links">
+            <a href="#">Executive Summary</a>
+            <a href="#test-coverage">Test Coverage</a>
+            <a href="#priority-remediation">Prioritized Remediation</a>
+            <a href="#risk-score">Risk Score &amp; Maturity</a>
+            <a href="#control-paths">Control Paths</a>
+            <a href="#critical-findings">Critical</a>
+            </div>
+            <button type="button" class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+        </nav>
+
+        <h2 id="executive-summary">Executive Summary</h2>
+        <div class="summary-cards">
+            <a class="summary-card critical-card" href="#critical-findings">
+                <div class="count">41</div>
+                <div class="label">Critical</div>
+            </a>
+            <a class="summary-card high-card summary-card-empty" href="#">
+                <div class="count">0</div>
+                <div class="label">High</div>
+            </a>
+            <a class="summary-card medium-card summary-card-empty" href="#">
+                <div class="count">0</div>
+                <div class="label">Medium</div>
+            </a>
+            <a class="summary-card low-card summary-card-empty" href="#">
+                <div class="count">0</div>
+                <div class="label">Low</div>
+            </a>
+        </div>        <h2 id="priority-remediation">Prioritized Remediation Order</h2>
+        <p style="color:#5b6472; margin-bottom: 10px;">The findings below are ranked worst-first - by severity, then by how risky their category is overall - as a starting work order. This is a starting point for planning, not a replacement for reviewing every finding.</p>
+<ol class="priority-list">
+    <li class="priority-item">
+        <span class="priority-rank">1</span>
+        <a href="#finding-legacy-auth-name-poisoning-wsus-delivered-over-http">WSUS Delivered over HTTP<span class="priority-cat">Legacy Auth &amp; Name Poisoning &middot; 1 affected object</span></a>
+        <span class="severity-badge severity-critical">Critical</span>
+    </li>
+    <li class="priority-item">
+        <span class="priority-rank">2</span>
+        <a href="#finding-legacy-auth-name-poisoning-smbv1-enabled-not-disabled-by-policy">SMBv1 Enabled / Not Disabled by Policy<span class="priority-cat">Legacy Auth &amp; Name Poisoning &middot; 1 affected object</span></a>
+        <span class="severity-badge severity-critical">Critical</span>
+    </li>
+    <li class="priority-item">
+        <span class="priority-rank">3</span>
+        <a href="#finding-legacy-auth-name-poisoning-smb-signing-not-required">SMB Signing Not Required<span class="priority-cat">Legacy Auth &amp; Name Poisoning &middot; 1 affected object</span></a>
+        <span class="severity-badge severity-critical">Critical</span>
+    </li>
+    <li class="priority-item">
+        <span class="priority-rank">4</span>
+        <a href="#finding-legacy-auth-name-poisoning-lm-ntlmv1-authentication-permitted">LM/NTLMv1 Authentication Permitted<span class="priority-cat">Legacy Auth &amp; Name Poisoning &middot; 1 affected object</span></a>
+        <span class="severity-badge severity-critical">Critical</span>
+    </li>
+    <li class="priority-item">
+        <span class="priority-rank">5</span>
+        <a href="#finding-legacy-auth-name-poisoning-gpo-permits-lm-hash-storage">GPO Permits LM Hash Storage<span class="priority-cat">Legacy Auth &amp; Name Poisoning &middot; 1 affected object</span></a>
+        <span class="severity-badge severity-critical">Critical</span>
+    </li>
+    <li class="priority-item">
+        <span class="priority-rank">6</span>
+        <a href="#finding-group-policy-gpp-cpassword-found-in-sysvol">GPP cpassword Found in SYSVOL<span class="priority-cat">Group Policy &middot; 1 affected object</span></a>
+        <span class="severity-badge severity-critical">Critical</span>
+    </li>
+    <li class="priority-item">
+        <span class="priority-rank">7</span>
+        <a href="#finding-coercion-relay-exposure-ldap-channel-binding-not-enforced">LDAP Channel Binding Not Enforced<span class="priority-cat">Coercion &amp; Relay Exposure &middot; 1 affected object</span></a>
+        <span class="severity-badge severity-critical">Critical</span>
+    </li>
+    <li class="priority-item">
+        <span class="priority-rank">8</span>
+        <a href="#finding-coercion-relay-exposure-ldap-signing-not-enforced-on-domain-controller">LDAP Signing Not Enforced on Domain Controller<span class="priority-cat">Coercion &amp; Relay Exposure &middot; 1 affected object</span></a>
+        <span class="severity-badge severity-critical">Critical</span>
+    </li>
+    <li class="priority-item">
+        <span class="priority-rank">9</span>
+        <a href="#finding-coercion-relay-exposure-print-spooler-running-on-domain-controller">Print Spooler Running on Domain Controller<span class="priority-cat">Coercion &amp; Relay Exposure &middot; 1 affected object</span></a>
+        <span class="severity-badge severity-critical">Critical</span>
+    </li>
+    <li class="priority-item">
+        <span class="priority-rank">10</span>
+        <a href="#finding-coercion-relay-exposure-webclient-service-enabled-on-domain-controller">WebClient Service Enabled on Domain Controller<span class="priority-cat">Coercion &amp; Relay Exposure &middot; 1 affected object</span></a>
+        <span class="severity-badge severity-critical">Critical</span>
+    </li>
+</ol>        <h2 id="risk-score">Risk Score &amp; Maturity</h2>
+        <div class="scoring-grid">
+            <div class="score-panel">
+                <h3>Global Risk Score</h3>
+                <div class="gauge-wrap">
+                    <div class="gauge-svg-wrap">
+    <svg viewBox="0 0 160 160" role="img" aria-label="Risk score 92 out of 100">
+        <circle cx="80" cy="80" r="70" fill="none" stroke="#e2e6ea" stroke-width="14" />
+        <circle cx="80" cy="80" r="70" fill="none" stroke="#b3261e" stroke-width="14"
+                stroke-linecap="round" stroke-dasharray="404.63 35.19"
+                transform="rotate(-90 80 80)" />
+    </svg>
+    <div class="gauge-center">
+        <div class="num">92</div>
+        <div class="of">/ 100</div>
+    </div>
+</div>
+                    <div class="score-meta">
+                        <p><strong>41</strong> findings scored.</p>
+                        <p>Higher is worse. The global score equals the worst category's score - a category is only ever as strong as its weakest one - similar in spirit to PingCastle's approach.</p>
+                        <p class="hint">Each category's score approaches 100 as findings accumulate, using diminishing returns per finding (a single Critical won't max out a category by itself). Raw weighted points across all findings: 1640</p>
+                    </div>
+                </div>
+            </div>
+            <div class="maturity-panel">
+                <h3>ANSSI Maturity Level</h3>
+                <div class="maturity-head">1 <small>/ 5</small></div>
+                <p style="color:#1f2937; margin: 6px 0 4px;">Level 1 - Critical gaps (basic hygiene not met)</p>
+                <div class="maturity-stepper">                    <div class="maturity-chip current"><span class="lvl">1</span><span>Critical gaps</span></div>                    <div class="maturity-chip"><span class="lvl">2</span><span>Partial hygiene</span></div>                    <div class="maturity-chip"><span class="lvl">3</span><span>Standard hardening</span></div>                    <div class="maturity-chip"><span class="lvl">4</span><span>Advanced hardening</span></div>                    <div class="maturity-chip"><span class="lvl">5</span><span>Optimal</span></div>                </div>
+                <p class="hint" style="font-size:0.85em; color:#5b6472; margin-top:10px;">A single Level&nbsp;1 finding caps maturity at Level&nbsp;1. Lower level = more critical hygiene gaps remain.</p>
+            </div>
+        </div>        <h3>Risk by Category</h3>
+        <div class="category-bars-svg" style="margin: 10px 0 20px;">
+<svg viewBox="0 0 700 690" role="img" aria-label="Risk score by category">
+    <g><title>Legacy Auth &amp; Name Poisoning (5 findings)</title>
+    <text x="0" y="24" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Legacy Auth &amp; Name Poiso… (5)</text>
+    <rect x="230" y="4" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="4" width="377.2" height="22" rx="4" fill="#b3261e" />
+    <text x="650" y="24" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">92</text>
+    </g>
+    <g><title>Coercion &amp; Relay Exposure (4 findings)</title>
+    <text x="0" y="58" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Coercion &amp; Relay Exposure (4)</text>
+    <rect x="230" y="38" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="38" width="356.7" height="22" rx="4" fill="#b3261e" />
+    <text x="650" y="58" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">87</text>
+    </g>
+    <g><title>Group Policy (4 findings)</title>
+    <text x="0" y="92" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Group Policy (4)</text>
+    <rect x="230" y="72" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="72" width="356.7" height="22" rx="4" fill="#b3261e" />
+    <text x="650" y="92" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">87</text>
+    </g>
+    <g><title>Admin Equivalence (3 findings)</title>
+    <text x="0" y="126" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Admin Equivalence (3)</text>
+    <rect x="230" y="106" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="106" width="319.8" height="22" rx="4" fill="#b3261e" />
+    <text x="650" y="126" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">78</text>
+    </g>
+    <g><title>Uncategorized (Synthetic) (3 findings)</title>
+    <text x="0" y="160" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Uncategorized (Synthetic) (3)</text>
+    <rect x="230" y="140" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="140" width="319.8" height="22" rx="4" fill="#b3261e" />
+    <text x="650" y="160" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">78</text>
+    </g>
+    <g><title>Replication Security (2 findings)</title>
+    <text x="0" y="194" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Replication Security (2)</text>
+    <rect x="230" y="174" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="174" width="262.4" height="22" rx="4" fill="#c8590b" />
+    <text x="650" y="194" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">64</text>
+    </g>
+    <g><title>Managed Service Accounts (2 findings)</title>
+    <text x="0" y="228" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Managed Service Accounts (2)</text>
+    <rect x="230" y="208" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="208" width="262.4" height="22" rx="4" fill="#c8590b" />
+    <text x="650" y="228" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">64</text>
+    </g>
+    <g><title>User Account (2 findings)</title>
+    <text x="0" y="262" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">User Account (2)</text>
+    <rect x="230" y="242" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="242" width="262.4" height="22" rx="4" fill="#c8590b" />
+    <text x="650" y="262" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">64</text>
+    </g>
+    <g><title>Domain Trusts (2 findings)</title>
+    <text x="0" y="296" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Domain Trusts (2)</text>
+    <rect x="230" y="276" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="276" width="262.4" height="22" rx="4" fill="#c8590b" />
+    <text x="650" y="296" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">64</text>
+    </g>
+    <g><title>Domain Security (2 findings)</title>
+    <text x="0" y="330" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Domain Security (2)</text>
+    <rect x="230" y="310" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="310" width="262.4" height="22" rx="4" fill="#c8590b" />
+    <text x="650" y="330" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">64</text>
+    </g>
+    <g><title>Certificate Services (2 findings)</title>
+    <text x="0" y="364" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Certificate Services (2)</text>
+    <rect x="230" y="344" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="344" width="262.4" height="22" rx="4" fill="#c8590b" />
+    <text x="650" y="364" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">64</text>
+    </g>
+    <g><title>Schema Integrity (2 findings)</title>
+    <text x="0" y="398" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Schema Integrity (2)</text>
+    <rect x="230" y="378" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="378" width="262.4" height="22" rx="4" fill="#c8590b" />
+    <text x="650" y="398" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">64</text>
+    </g>
+    <g><title>Attack Paths (1 finding)</title>
+    <text x="0" y="432" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Attack Paths (1)</text>
+    <rect x="230" y="412" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="412" width="164" height="22" rx="4" fill="#8a6200" />
+    <text x="650" y="432" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">40</text>
+    </g>
+    <g><title>Kerberos Security (1 finding)</title>
+    <text x="0" y="466" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Kerberos Security (1)</text>
+    <rect x="230" y="446" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="446" width="164" height="22" rx="4" fill="#8a6200" />
+    <text x="650" y="466" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">40</text>
+    </g>
+    <g><title>Exchange-in-AD Privilege Escalation (1 finding)</title>
+    <text x="0" y="500" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Exchange-in-AD Privilege… (1)</text>
+    <rect x="230" y="480" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="480" width="164" height="22" rx="4" fill="#8a6200" />
+    <text x="650" y="500" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">40</text>
+    </g>
+    <g><title>Kerberos Delegation (1 finding)</title>
+    <text x="0" y="534" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Kerberos Delegation (1)</text>
+    <rect x="230" y="514" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="514" width="164" height="22" rx="4" fill="#8a6200" />
+    <text x="650" y="534" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">40</text>
+    </g>
+    <g><title>Read-Only Domain Controller Security Posture (1 finding)</title>
+    <text x="0" y="568" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Read-Only Domain Control… (1)</text>
+    <rect x="230" y="548" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="548" width="164" height="22" rx="4" fill="#8a6200" />
+    <text x="650" y="568" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">40</text>
+    </g>
+    <g><title>AdminSDHolder (1 finding)</title>
+    <text x="0" y="602" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">AdminSDHolder (1)</text>
+    <rect x="230" y="582" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="582" width="164" height="22" rx="4" fill="#8a6200" />
+    <text x="650" y="602" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">40</text>
+    </g>
+    <g><title>Stale-Object &amp; Hygiene Depth (1 finding)</title>
+    <text x="0" y="636" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">Stale-Object &amp; Hygiene D… (1)</text>
+    <rect x="230" y="616" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="616" width="164" height="22" rx="4" fill="#8a6200" />
+    <text x="650" y="636" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">40</text>
+    </g>
+    <g><title>DNS Security (1 finding)</title>
+    <text x="0" y="670" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">DNS Security (1)</text>
+    <rect x="230" y="650" width="410" height="22" rx="4" fill="#e2e6ea" />
+    <rect x="230" y="650" width="164" height="22" rx="4" fill="#8a6200" />
+    <text x="650" y="670" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">40</text>
+    </g>
+
+</svg>
+        </div>        <h3>MITRE ATT&amp;CK Technique Summary</h3>
+        <div style="overflow-x: auto;">
+            <table class="mitre-table">
+                <thead><tr><th>Technique</th><th>Name</th><th>Findings</th></tr></thead>
+                <tbody>                    <tr>
+                        <td class="mitre-id">T1098</td>
+                        <td>Account Manipulation</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 100%;"></span></span><span>7</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1557.001</td>
+                        <td>Adversary-in-the-Middle: Name Resolution Poisoning and SMB Relay</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 71%;"></span></span><span>5</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1558</td>
+                        <td>Steal or Forge Kerberos Tickets</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 43%;"></span></span><span>3</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1134.005</td>
+                        <td>Access Token Manipulation: SID-History Injection</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 43%;"></span></span><span>3</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1003</td>
+                        <td>OS Credential Dumping</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 43%;"></span></span><span>3</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1649</td>
+                        <td>Steal or Forge Authentication Certificates</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 29%;"></span></span><span>2</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1552.005</td>
+                        <td>Unsecured Credentials: Cloud Instance Metadata API</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 29%;"></span></span><span>2</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1210</td>
+                        <td>Exploitation of Remote Services</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 29%;"></span></span><span>2</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1187</td>
+                        <td>Forced Authentication</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 29%;"></span></span><span>2</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1003.006</td>
+                        <td>OS Credential Dumping: DCSync</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 29%;"></span></span><span>2</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1574.002</td>
+                        <td>Hijack Execution Flow: DLL Side-Loading</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 14%;"></span></span><span>1</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1558.003</td>
+                        <td>Steal or Forge Kerberos Tickets: Kerberoasting</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 14%;"></span></span><span>1</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1558.001</td>
+                        <td>Steal or Forge Kerberos Tickets: Golden Ticket</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 14%;"></span></span><span>1</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1556</td>
+                        <td>Modify Authentication Process</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 14%;"></span></span><span>1</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1552.006</td>
+                        <td>Unsecured Credentials: Group Policy Preferences</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 14%;"></span></span><span>1</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1552.001</td>
+                        <td>Unsecured Credentials: Credentials In Files</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 14%;"></span></span><span>1</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1484.001</td>
+                        <td>Domain or Tenant Policy Modification: Group Policy Modification</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 14%;"></span></span><span>1</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1207</td>
+                        <td>Rogue Domain Controller</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 14%;"></span></span><span>1</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1098.007</td>
+                        <td>Account Manipulation: Additional Local or Domain Groups</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 14%;"></span></span><span>1</span></div></td>
+                    </tr>                    <tr>
+                        <td class="mitre-id">T1078</td>
+                        <td>Valid Accounts</td>
+                        <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width: 14%;"></span></span><span>1</span></div></td>
+                    </tr>                </tbody>
+            </table>
+        </div>        <h2 id="control-paths">Control Paths to Tier-0</h2>
+        <p style="color:#5b6472; margin-bottom: 15px;">Chained group-membership, ACL, and ownership relationships that let a non-privileged principal reach a Tier-0 object (Domain Admins/DCs/AdminSDHolder/domain head). No single hop here need look critical on its own - see each finding below for full remediation guidance.</p>        <div class="finding critical" style="border-left-width: 5px;">
+            <div class="finding-header">
+                <div class="finding-title">Everyone/Authenticated Users on a Control Path to Tier-0</div>
+                <span class="severity-badge severity-critical">Critical</span>
+            </div>
+
+            <div class="finding-section">
+                <h4>Hop Chain</h4>
+                <p class="code-block">synthetic-object-41.fabrikam.local</p>
+            </div>
+        </div>        <hr class="section-divider">
+        <div class="section-divider-label"><span>Technical Findings - Full Detail</span></div>    <h2 id="critical-findings"><span class="sev-dot sev-dot-critical"></span>Critical Severity Findings</h2>
+    <div class="section-toolbar">
+        <button type="button" class="toggle-all-btn" onclick="setSectionFindings('critical-findings', true)">Expand All</button>
+        <button type="button" class="toggle-all-btn" onclick="setSectionFindings('critical-findings', false)">Collapse All</button>
+    </div>
+    <div id="critical-findings-body">        <details class="finding critical" id="finding-admin-equivalence-privileged-sid-in-history">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Privileged SID in History</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Admin Equivalence</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-19.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1134.005</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_privileged_sid_history</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Privileged SID in History&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Privileged SID in History&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Privileged SID in History&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - clearing sIDHistory is simple technically, but confirming the account isn&#39;t an active cross-domain migration in progress requires checking with whoever ran the migration.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>If a domain migration is still underway, clearing sIDHistory before every migrated resource&#39;s ACL has been updated to the new SID can break the migrated user&#39;s access to resources that still only trust the old SID.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Hard/Limited - sIDHistory can&#39;t be restored to its prior value without re-injecting it via the same migration tooling (e.g. ADMT) that originally populated it; treat clearing it as a one-way cleanup once confirmed unauthorized.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-admin-equivalence-shadow-credentials-detected">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Shadow Credentials Detected</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Admin Equivalence</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-14.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1556</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_shadow_credentials</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Shadow Credentials Detected&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Shadow Credentials Detected&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Shadow Credentials Detected&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Low - clearing the msDS-KeyCredentialLink attribute is a single-attribute change on one object.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Removing an unauthorized key credential has no legitimate compatibility impact unless it is actually a currently-enrolled Windows Hello for Business or passwordless-auth key, so confirm the key isn&#39;t legitimate before clearing.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Moderate - export the current msDS-KeyCredentialLink value before clearing so a legitimate key can be restored if the removal turns out to affect a real passwordless sign-in.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-admin-equivalence-sid-history-injection-same-domain">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">SID History Injection (Same Domain)</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Admin Equivalence</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-12.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1134.005</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_sid_history_injection</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;SID History Injection (Same Domain)&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;SID History Injection (Same Domain)&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;SID History Injection (Same Domain)&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>High - this is an active-compromise indicator, not a configuration fix; it requires incident-response engagement, forensic investigation, and likely a KRBTGT password reset (twice) if a Golden Ticket is suspected, not a single change.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Resetting the account or clearing sIDHistory while an attacker may still have persistence elsewhere (forged tickets, other backdoors) can tip them off without fully evicting them, so this needs IR judgment, not just a config change.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Hard/Limited - this isn&#39;t a reversible setting; it&#39;s an incident-response action (reset/disable the account and investigate origin) with no rollback concept.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Operational Notes</h4>
+                    <p>Engage incident response before making changes if compromise is suspected, since a same-domain sIDHistory entry is a well-documented Golden Ticket/injection indicator rather than a misconfiguration.</p>
+                </div>
+            </div>
+        </details>        <details class="finding critical" id="finding-adminsdholder-non-standard-permissions-on-adminsdholder">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Non-Standard Permissions on AdminSDHolder</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> AdminSDHolder</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-26.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1098</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_adminsdholder_acl</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Non-Standard Permissions on AdminSDHolder&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Non-Standard Permissions on AdminSDHolder&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Non-Standard Permissions on AdminSDHolder&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - a single-object ACE removal, but AdminSDHolder&#39;s SDProp mechanism propagates the corrected ACL to every protected (Tier-0) object domain-wide, so confirm the trustee isn&#39;t a legitimate delegated Tier-0 management tool first.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Procedural - confirm the trustee isn&#39;t an intentional, currently-used Tier-0 delegation before removing; there is no realistic legitimate compatibility break otherwise.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Moderate - export the current ACL first; full effect across every protected object depends on SDProp&#39;s next propagation cycle, not just AD replication.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-attack-paths-everyone-authenticated-users-on-a-control-path-to-tier-0">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Everyone/Authenticated Users on a Control Path to Tier-0</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Attack Paths</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-41.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1098</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_control_path_broad</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Everyone/Authenticated Users on a Control Path to Tier-0&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Everyone/Authenticated Users on a Control Path to Tier-0&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Everyone/Authenticated Users on a Control Path to Tier-0&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - breaking one specific hop (a group nesting or ACE) in the chain; effort scales with how many hops and objects are involved for a given path.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Removing the identified hop could break a legitimate, if poorly documented, delegation model if the chain was set up intentionally rather than accidentally, so confirm with the object owner before removing.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Moderate - export the specific ACE or group membership being removed so it can be restored, then re-run this audit to confirm the path no longer resolves.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-certificate-services-overly-permissive-ca-permissions-esc7">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Overly Permissive CA Permissions (ESC7)</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Certificate Services</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-23.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1649</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_adcs_esc7</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Overly Permissive CA Permissions (ESC7)&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Overly Permissive CA Permissions (ESC7)&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Overly Permissive CA Permissions (ESC7)&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - removing Manage CA / Manage Certificates rights from an unexpected principal on the CA object&#39;s own ACL; confirm with the PKI team it isn&#39;t a legitimate delegated administrator.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Procedural - confirm the principal isn&#39;t an active, legitimate delegated CA administrator before removing their rights.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - re-add the removed permission via the CA console&#39;s Security tab; effective immediately, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-certificate-services-weak-acl-on-pki-container-object-esc5">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Weak ACL on PKI Container Object (ESC5)</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Certificate Services</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-3.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1649</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_adcs_esc5</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Weak ACL on PKI Container Object (ESC5)&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Weak ACL on PKI Container Object (ESC5)&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Weak ACL on PKI Container Object (ESC5)&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - a container-level ACE removal; confirm the trustee isn&#39;t a legitimate PKI-management tool or delegated administrator before removing.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Procedural - confirm the trustee isn&#39;t an active PKI-management automation account or delegated admin before removing; no realistic legitimate technical break otherwise.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Moderate - export the container&#39;s ACL (dsacls or PSPKI) before changing it so the exact ACE can be restored if needed.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-coercion-relay-exposure-ldap-channel-binding-not-enforced">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">LDAP Channel Binding Not Enforced</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Coercion &amp; Relay Exposure</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-32.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1557.001</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_ldap_channel_binding_not_enforced</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;LDAP Channel Binding Not Enforced&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;LDAP Channel Binding Not Enforced&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;LDAP Channel Binding Not Enforced&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - a domain-wide registry/GPO setting on every DC; Microsoft&#39;s own guidance recommends a phased &quot;when supported&quot; rollout before enforcing, due to legacy client compatibility.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Enforcing LDAP channel binding can break LDAPS-based clients or appliances that don&#39;t support channel binding tokens, per Microsoft&#39;s own documented compatibility guidance.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - revert the registry value/GPO setting; effective after next policy refresh/service restart, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-coercion-relay-exposure-ldap-signing-not-enforced-on-domain-controller">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">LDAP Signing Not Enforced on Domain Controller</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Coercion &amp; Relay Exposure</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-31.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1557.001</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_ldap_signing_not_enforced</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;LDAP Signing Not Enforced on Domain Controller&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;LDAP Signing Not Enforced on Domain Controller&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;LDAP Signing Not Enforced on Domain Controller&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - a domain/DC-wide GPO or registry setting; Microsoft&#39;s own LDAP-signing hardening guidance recommends an audit period before enforcing.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Enforcing LDAP signing can break unsigned-LDAP clients, applications, or network appliances, a documented compatibility concern in Microsoft&#39;s LDAP signing advisory.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - revert the GPO/registry setting; effective at next policy refresh, no data loss.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Operational Notes</h4>
+                    <p>Monitor Directory Service event ID 2887 (count of unsigned LDAP binds) before enforcing, per Microsoft&#39;s own documented rollout guidance.</p>
+                </div>
+            </div>
+        </details>        <details class="finding critical" id="finding-coercion-relay-exposure-print-spooler-running-on-domain-controller">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Print Spooler Running on Domain Controller</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Coercion &amp; Relay Exposure</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-22.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1187</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_dc_spooler_running</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Print Spooler Running on Domain Controller&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Print Spooler Running on Domain Controller&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Print Spooler Running on Domain Controller&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Low - stop and disable a single service on each DC (or via GPO).</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Disabling the Spooler service on a DC breaks any printing initiated directly from that DC itself, which is essentially never a legitimate DC role; it has no effect on printing by domain clients, which don&#39;t route jobs through DCs.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - re-enable and start the service; effective immediately, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-coercion-relay-exposure-webclient-service-enabled-on-domain-controller">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">WebClient Service Enabled on Domain Controller</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Coercion &amp; Relay Exposure</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-2.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1187</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_dc_webclient_running</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;WebClient Service Enabled on Domain Controller&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;WebClient Service Enabled on Domain Controller&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;WebClient Service Enabled on Domain Controller&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Low - stop and disable a single service on each DC.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Disabling WebClient (WebDAV) removes WebDAV redirector functionality on the DC host itself, which is essentially never a legitimate DC use case.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - re-enable and start the service; effective immediately, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-dns-security-non-default-members-in-dnsadmins">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Non-Default Members in DnsAdmins</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> DNS Security</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-27.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1574.002</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_dnsadmins_members</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Non-Default Members in DnsAdmins&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Non-Default Members in DnsAdmins&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Non-Default Members in DnsAdmins&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Low - removing an unexpected member from one group.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>DnsAdmins membership is a well-documented privilege-escalation vector (historical DNS-server-service DLL abuse); removing an unexpected member has no legitimate compatibility risk beyond that person losing DNS management rights, so confirm with them first.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - re-add the member if needed; effective on next Kerberos ticket refresh, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-domain-security-non-default-access-to-domain-dpapi-backup-key">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Non-Default Access to Domain DPAPI Backup Key</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Domain Security</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-29.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1552.001</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_dpapi_backup_key</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Non-Default Access to Domain DPAPI Backup Key&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Non-Default Access to Domain DPAPI Backup Key&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Non-Default Access to Domain DPAPI Backup Key&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Low - a targeted ACE removal on one or a small handful of domain-level objects, but confirm the principal isn&#39;t a legitimate, currently-used backup/recovery tool before removing.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>No legitimate day-to-day workflow needs direct access to the domain DPAPI backup key objects themselves; removing an unexpected grant has no legitimate compatibility impact unless it turns out to be an undocumented, currently-in-use backup/recovery tool, so confirm first.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Moderate - export the current ACL before removing the specific ACE(s) so they can be restored if a legitimate dependency surfaces.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-domain-security-reversible-encryption-enabled-domain-wide">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Reversible Encryption Enabled Domain-Wide</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Domain Security</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-18.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1003</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_reversible_domain_wide</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Reversible Encryption Enabled Domain-Wide&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Reversible Encryption Enabled Domain-Wide&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Reversible Encryption Enabled Domain-Wide&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - disabling the setting alone doesn&#39;t clear already-stored reversibly-encrypted password copies for existing accounts, so plan a follow-up forced password change for previously affected accounts.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>The existing stored reversible-encryption copy persists for each account until its next password change, so disabling the GPO setting alone doesn&#39;t retroactively protect current passwords, a documented Microsoft behavior.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - revert the GPO setting; no data loss, though re-enabling doesn&#39;t restore already-cleared reversible copies.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-domain-trusts-sid-filtering-disabled-on-external-trust">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">SID Filtering Disabled on External Trust</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Domain Trusts</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-13.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1134.005</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_sid_filtering_disabled</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;SID Filtering Disabled on External Trust&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;SID Filtering Disabled on External Trust&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;SID Filtering Disabled on External Trust&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Low - a single trust property toggle.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>SID filtering blocks SID-history-based authorization across the trust, so if the other domain legitimately relies on SID history for migrated accounts to retain access, enabling filtering can break that access; confirm no active migration depends on it.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - toggle SID filtering back off; effective immediately, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-domain-trusts-trust-configured-for-privileged-identity-management-pim-trust">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Trust Configured for Privileged Identity Management (PIM_TRUST)</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Domain Trusts</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-8.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1558</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_pim_trust</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Trust Configured for Privileged Identity Management (PIM_TRUST)&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Trust Configured for Privileged Identity Management (PIM_TRUST)&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Trust Configured for Privileged Identity Management (PIM_TRUST)&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Low - a single trust-attribute bit toggle, but confirm with the trust&#39;s owning teams before clearing it, since PIM trusts are typically deliberate cross-forest identity-management configurations.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Clearing PIM_TRUST restores standard SID filtering across the trust, which will break any legitimate Privileged Identity Management workflow that currently depends on the relaxed filtering - confirm the trust&#39;s purpose with its owning teams before changing it.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - the attribute can be re-set if a legitimate dependency surfaces; effective immediately, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-exchange-in-ad-privilege-escalation-exchange-group-holds-writedacl-on-domain-object">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Exchange Group Holds WriteDACL on Domain Object</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Exchange-in-AD Privilege Escalation</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-40.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1098</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_exchange_domain_writedacl</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Exchange Group Holds WriteDACL on Domain Object&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Exchange Group Holds WriteDACL on Domain Object&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Exchange Group Holds WriteDACL on Domain Object&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - removing this legacy right requires confirming the current Exchange version/CU no longer needs it and coordinating with the Exchange admin team.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Some Exchange functionality - particularly on older CUs that still expect this legacy permission model - can break if the right is removed while an in-place Exchange server still depends on it; confirm current CU-level guidance before removing.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Moderate - export the domain object&#39;s ACL before removing the ACE so it can be restored if Exchange functionality is affected; changes follow normal AD replication.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-group-policy-gpo-deploys-restricted-groups-membership">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">GPO Deploys Restricted Groups Membership</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Group Policy</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-38.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1098.007</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_gpo_restricted_groups</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;GPO Deploys Restricted Groups Membership&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;GPO Deploys Restricted Groups Membership&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;GPO Deploys Restricted Groups Membership&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - editing the Restricted Groups membership list in one GPO; confirm with the owning team which members are actually still needed before removing any.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Removing a member that legitimately needs local admin/RDP/backup rights on the affected computers will revoke that access at the next Group Policy refresh - confirm current legitimate use before narrowing.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - restore the prior Restricted Groups membership list in the GPO; effective at next Group Policy refresh, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-group-policy-gpo-grants-sensitive-logon-right-to-broad-principal">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">GPO Grants Sensitive Logon Right to Broad Principal</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Group Policy</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-37.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1078</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_gpo_anonymous_logon_right</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;GPO Grants Sensitive Logon Right to Broad Principal&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;GPO Grants Sensitive Logon Right to Broad Principal&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;GPO Grants Sensitive Logon Right to Broad Principal&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - removing a broad principal from a User Rights Assignment in one GPO; confirm no legitimate broad-access scenario (e.g. an intentional kiosk deployment) depends on it.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Removing a broad principal from a sensitive logon right can lock out any system or service that currently relies on that broad grant, so confirm intent before narrowing.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - revert the User Rights Assignment setting in the GPO; effective at next Group Policy refresh, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-group-policy-gpo-linked-to-domain-controllers-with-weak-permissions">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">GPO Linked to Domain Controllers with Weak Permissions</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Group Policy</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-36.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1484.001</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_gpo_dc_weak_perms</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;GPO Linked to Domain Controllers with Weak Permissions&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;GPO Linked to Domain Controllers with Weak Permissions&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;GPO Linked to Domain Controllers with Weak Permissions&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - removing a non-standard Edit/Write right from the GPO object itself; confirm the trustee isn&#39;t a legitimate delegated GPO-management account.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Procedural - confirm the trustee isn&#39;t a legitimate delegated GPO administrator for that specific GPO before removing their rights.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - restore the GPO permission via GPMC; effective immediately, though the change still needs to replicate to all DCs.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-group-policy-gpp-cpassword-found-in-sysvol">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">GPP cpassword Found in SYSVOL</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Group Policy</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-34.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1552.006</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_gpp_cpassword</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;GPP cpassword Found in SYSVOL&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;GPP cpassword Found in SYSVOL&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;GPP cpassword Found in SYSVOL&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - the embedded account&#39;s password must be rotated everywhere it&#39;s used (it&#39;s already fully compromised) and the GPP item removed or recreated without cpassword.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>The embedded password is trivially decryptable by any authenticated user, since Microsoft publicly released the AES key used for GPP cpassword encryption after MS14-025 - treat it as already fully compromised and rotate the account&#39;s password before or immediately after removing the GPP item.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Hard/Limited - like the logon-script credential finding, this isn&#39;t a reversible setting; the exposure already happened and the credential must be rotated, not restored.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-kerberos-delegation-user-account-with-protocol-transition-t2a4d">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">User Account with Protocol Transition (T2A4D)</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Kerberos Delegation</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-5.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1558</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_user_protocol_transition</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;User Account with Protocol Transition (T2A4D)&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;User Account with Protocol Transition (T2A4D)&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;User Account with Protocol Transition (T2A4D)&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - a single-attribute change, but confirm whether the impersonation capability is still required before removing it; migrating to a Group Managed Service Account (as the remediation suggests) is a larger, separate project.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Protocol transition on a user account is a highly consequential but sometimes legitimate impersonation mechanism, so removing it can break the specific service still relying on it.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - restore the TrustedToAuthForDelegation flag and delegation list on the account; effective at next Kerberos ticket request, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-kerberos-security-krbtgt-password-age-exceeds-recommended-threshold">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">KRBTGT Password Age Exceeds Recommended Threshold</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Kerberos Security</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-33.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1558.001</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_krbtgt_age</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;KRBTGT Password Age Exceeds Recommended Threshold&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;KRBTGT Password Age Exceeds Recommended Threshold&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;KRBTGT Password Age Exceeds Recommended Threshold&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - a KRBTGT reset needs to be done twice, roughly a replication cycle apart, to fully invalidate old tickets - this is a documented, deliberate two-step process, not a single trivial change.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Resetting KRBTGT invalidates existing Kerberos tickets domain-wide once fully replicated; doing both resets in quick succession without allowing replication between them is the well-documented way to cause a temporary authentication disruption, so pace them one replication cycle apart.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Hard/Limited - a password reset cannot be undone to the old value, only reset again; if issues arise, the fix is to complete the second reset and let replication converge, not to revert.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-legacy-auth-name-poisoning-gpo-permits-lm-hash-storage">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">GPO Permits LM Hash Storage</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Legacy Auth &amp; Name Poisoning</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-35.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1557.001</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_lm_hash_storage</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;GPO Permits LM Hash Storage&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;GPO Permits LM Hash Storage&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;GPO Permits LM Hash Storage&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Low - a single GPO setting applied domain-wide; existing LM hashes clear naturally as passwords are next changed.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>No legitimate modern workflow depends on LM hashes being stored; the only practical consideration is that existing LM hashes persist until each account&#39;s next password change, not immediately.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - revert the GPO setting; effective at next Group Policy refresh, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-legacy-auth-name-poisoning-lm-ntlmv1-authentication-permitted">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">LM/NTLMv1 Authentication Permitted</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Legacy Auth &amp; Name Poisoning</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-30.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1557.001</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_lm_ntlmv1_permitted</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;LM/NTLMv1 Authentication Permitted&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;LM/NTLMv1 Authentication Permitted&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;LM/NTLMv1 Authentication Permitted&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - raising the LAN Manager authentication level domain-wide can break very old clients/devices, so audit NTLM usage first, per Microsoft&#39;s own documented audit-before-enforce guidance.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Enforcing NTLMv2-only will break authentication for legacy devices or applications that only support LM or NTLMv1 (older network appliances, some legacy SMB/CIFS-based systems).</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - revert the LAN Manager authentication level GPO setting; effective at next Group Policy refresh, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-legacy-auth-name-poisoning-smb-signing-not-required">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">SMB Signing Not Required</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Legacy Auth &amp; Name Poisoning</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-11.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1557.001</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_smb_signing_not_required</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;SMB Signing Not Required&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;SMB Signing Not Required&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;SMB Signing Not Required&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - requiring SMB signing domain/DC-wide can affect performance and legacy client compatibility, so validate with a monitoring window per Microsoft&#39;s own guidance.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Requiring SMB signing adds CPU overhead per SMB packet and can break or slow legacy SMB clients or devices that don&#39;t support it.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - revert the GPO setting; effective at next Group Policy refresh, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-legacy-auth-name-poisoning-smbv1-enabled-not-disabled-by-policy">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">SMBv1 Enabled / Not Disabled by Policy</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Legacy Auth &amp; Name Poisoning</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-10.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1210</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_smbv1_enabled</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;SMBv1 Enabled / Not Disabled by Policy&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;SMBv1 Enabled / Not Disabled by Policy&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;SMBv1 Enabled / Not Disabled by Policy&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - disabling SMBv1 requires confirming no legacy device (old NAS, printer, embedded scanner, very old OS) still requires it, since this is a widely documented historical dependency.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Many legacy or embedded devices (older printers/scanners/NAS, very old Windows/Samba versions) only support SMBv1 and will lose file/print connectivity once it&#39;s disabled.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - re-enable the SMBv1 feature/GPO setting; effective after a restart/policy refresh, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-legacy-auth-name-poisoning-wsus-delivered-over-http">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">WSUS Delivered over HTTP</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Legacy Auth &amp; Name Poisoning</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-1.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1210</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_wsus_http</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;WSUS Delivered over HTTP&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;WSUS Delivered over HTTP&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;WSUS Delivered over HTTP&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - converting WSUS to HTTPS requires a certificate, an IIS binding change, and reconfiguring every client&#39;s WSUS GPO to the new URL, a coordinated multi-step change across the fleet.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>A botched certificate or binding change can temporarily break update delivery to every client pointed at that WSUS server until corrected; switching to HTTPS itself carries no other legitimate compatibility risk.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Moderate - revert the WSUS client GPO to the HTTP URL and the IIS binding to HTTP; requires a Group Policy refresh across clients to fully take effect.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-managed-service-accounts-gmsa-password-retrievable-by-broad-principal">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">gMSA Password Retrievable by Broad Principal</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Managed Service Accounts</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-39.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1552.005</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_gmsa_broad_retrieval</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;gMSA Password Retrievable by Broad Principal&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;gMSA Password Retrievable by Broad Principal&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;gMSA Password Retrievable by Broad Principal&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Low - a single-attribute change on the gMSA object; confirm the actual hosting server(s) first so they remain in the narrowed list.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>If the narrowed list omits a server that legitimately hosts this service, that server will fail to retrieve the password at its next rotation/lookup and the service will stop authenticating - confirm every real host before narrowing.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - restore the prior PrincipalsAllowedToRetrieveManagedPassword value; takes effect immediately, no data loss.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-managed-service-accounts-non-default-access-to-gmsa-kds-root-key">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Non-Default Access to gMSA KDS Root Key</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Managed Service Accounts</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-28.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1552.005</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_gmsa_kds_root_key</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Non-Default Access to gMSA KDS Root Key&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Non-Default Access to gMSA KDS Root Key&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Non-Default Access to gMSA KDS Root Key&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Low - a targeted ACE removal on one forest-level container, but confirm the principal isn&#39;t a legitimate delegated PKI/identity-management tool before removing.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>No legitimate gMSA host or consumer needs direct access to the KDS root key object itself (they retrieve their own gMSA&#39;s password via msDS-ManagedPassword, not this key) - removing an unexpected grant has no legitimate compatibility impact unless it is an undocumented, currently-in-use PKI/identity tool, so confirm first.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Moderate - export the current ACL before removing the specific ACE(s) so they can be restored if a legitimate dependency surfaces.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-read-only-domain-controller-security-posture-privileged-account-revealed-to-rodc">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Privileged Account Revealed to RODC</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Read-Only Domain Controller Security Posture</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-21.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1003</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_rodc_privileged_revealed</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Privileged Account Revealed to RODC&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Privileged Account Revealed to RODC&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Privileged Account Revealed to RODC&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - the exposed account&#39;s password must be reset and the Password Replication Policy corrected; this is a credential-exposure event on that RODC, not just a config change.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Once a password has been cached on an RODC it must be treated as exposed to anyone with local admin or physical access to that RODC, per the standard RODC security model (RODCs are assumed to be physically less secure); correcting the policy going forward does not undo the existing cached credential.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Hard/Limited - the credential exposure itself can&#39;t be rolled back, only remediated by resetting the account&#39;s password; the Password Replication Policy setting itself, however, can be easily reverted.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-replication-security-spn-holding-account-also-has-dcsync-rights">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">SPN-Holding Account Also Has DCSync Rights</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Replication Security</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-9.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1003.006</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_spn_dcsync_chain</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;SPN-Holding Account Also Has DCSync Rights&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;SPN-Holding Account Also Has DCSync Rights&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;SPN-Holding Account Also Has DCSync Rights&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Low - the same single-ACE removal already scoped in the standalone Unauthorized DCSync Permissions finding for this account, or a routine SPN removal/service-account migration, whichever side is decided on.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Removing DCSync rights or an SPN from an account that turns out to be a legitimate directory-sync or service account will break that tool/service until re-provisioned correctly (e.g. via a dedicated gMSA without DCSync rights) - confirm the account&#39;s actual purpose before changing either side.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Moderate - export the current ACL and/or SPN value before changing either side so it can be restored if a legitimate dependency surfaces.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-replication-security-unauthorized-dcsync-permissions">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Unauthorized DCSync Permissions</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Replication Security</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-7.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1003.006</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_dcsync</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Unauthorized DCSync Permissions&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Unauthorized DCSync Permissions&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Unauthorized DCSync Permissions&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Low - removing two specific extended-right ACEs (Replicating Directory Changes / Replicating Directory Changes All) from one object, a well-scoped ACE change.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Legitimate DCSync-capable accounts are normally limited to Domain Controllers, Domain/Enterprise Admins, and directory-sync tools like Azure AD Connect; removing an unauthorized grant has no legitimate compatibility impact unless it turns out to be an undocumented, currently-in-use sync or identity-governance tool, so confirm no such tool depends on it.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Moderate - export the domain object&#39;s ACL before removing the specific extended-right ACEs so they can be restored if a legitimate sync tool is affected; changes follow normal AD replication.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-schema-integrity-schema-defaultsecuritydescriptor-modified">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Schema defaultSecurityDescriptor Modified</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Schema Integrity</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-15.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1098</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_schema_default_sd</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Schema defaultSecurityDescriptor Modified&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Schema defaultSecurityDescriptor Modified&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Schema defaultSecurityDescriptor Modified&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - schema changes require Schema Admins and are forest-wide; validate the corrected SDDL in a lab before applying to production.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Restoring the default defaultSecurityDescriptor does not retroactively fix already-created objects that inherited the modified ACL at creation time - those objects need to be separately identified and remediated.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Difficult - schema attribute value changes are not easily reverted once objects have been created under the modified default; back up the current value and plan for a separate remediation pass on already-affected objects.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-schema-integrity-vulnerable-schema-class-allows-arbitrary-object-creation">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Vulnerable Schema Class Allows Arbitrary Object Creation</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Schema Integrity</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-4.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1098</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_schema_class_vulnerable</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Vulnerable Schema Class Allows Arbitrary Object Creation&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Vulnerable Schema Class Allows Arbitrary Object Creation&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Vulnerable Schema Class Allows Arbitrary Object Creation&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - schema changes require Schema Admins and are forest-wide, so validate the change in a lab before applying, and confirm no legitimate application depends on the current (vulnerable) configuration.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Schema modifications are forest-wide and cannot be easily reverted (schema attributes/classes can be deactivated but not fully deleted) - test any corrective change thoroughly in a lab first.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Difficult - schema changes are effectively permanent (classes/attributes can be deactivated, not removed); a system state backup of a schema-master DC before changing anything is the only real rollback path.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-stale-object-hygiene-depth-rogue-ntds-settings-object-detected">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Rogue NTDS Settings Object Detected</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Stale-Object &amp; Hygiene Depth</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-16.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1207</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_rogue_ntds_object</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Rogue NTDS Settings Object Detected&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Rogue NTDS Settings Object Detected&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Rogue NTDS Settings Object Detected&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>High - this requires an incident-response-style investigation (replication metadata, event log correlation, timeline reconstruction) before any cleanup action, not a routine configuration fix.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Deleting the object directly (rather than via documented DC metadata cleanup) can leave inconsistent replication metadata across the forest; treat this as a potential security incident requiring investigation before remediation, not a routine hygiene item.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>N/A - this is a detection/investigation finding; remediation should follow Microsoft&#39;s documented metadata-cleanup procedure once the object is confirmed non-legitimate.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-uncategorized-synthetic-non-standard-permissions-on-configuration-naming-context">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Non-Standard Permissions on Configuration Naming Context</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Uncategorized (Synthetic)</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-25.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1098</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_config_nc_acl</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Non-Standard Permissions on Configuration Naming Context&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Non-Standard Permissions on Configuration Naming Context&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Non-Standard Permissions on Configuration Naming Context&#39;.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-uncategorized-synthetic-non-standard-permissions-on-schema-naming-context">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Non-Standard Permissions on Schema Naming Context</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Uncategorized (Synthetic)</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-24.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1098</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_schema_nc_acl</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Non-Standard Permissions on Schema Naming Context&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Non-Standard Permissions on Schema Naming Context&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Non-Standard Permissions on Schema Naming Context&#39;.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-uncategorized-synthetic-privileged-account-with-spn-kerberoasting-risk">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Privileged Account with SPN (Kerberoasting Risk)</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> Uncategorized (Synthetic)</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-20.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1558.003</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_priv_spn_kerberoast</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Privileged Account with SPN (Kerberoasting Risk)&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Privileged Account with SPN (Kerberoasting Risk)&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Privileged Account with SPN (Kerberoasting Risk)&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - same as the non-privileged version, but the higher blast radius (a privileged account) makes coordinating the gMSA migration or password rotation with the service owner more urgent.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>A privileged service account with an SPN and a weak/crackable password is a high-value Kerberoasting target, since cracking it yields privileged access directly; migrating to a gMSA is the standard fix but requires the hosting application to support it.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - if gMSA migration isn&#39;t viable, revert to the original account with a long/complex manually-set password; no data loss, though any ticket captured before the change remains crackable until the old password is retired.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-user-account-reversible-password-encryption">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Reversible Password Encryption</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> User Account</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-17.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1003</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_reversible_password</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Reversible Password Encryption&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Reversible Password Encryption&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Reversible Password Encryption&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Low - a single userAccountControl flag (ENCRYPTED_TEXT_PWD_ALLOWED) per account.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>The existing reversibly-encrypted copy of the password persists until the account&#39;s next password change, so disabling the flag alone doesn&#39;t retroactively protect the current password.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - revert the flag; no data loss, though not retroactive to the already-stored reversible copy.</p>
+                </div>
+
+            </div>
+        </details>        <details class="finding critical" id="finding-user-account-unconstrained-delegation-enabled">
+            <summary>
+                <div class="finding-header">
+                    <div class="finding-title">Unconstrained Delegation Enabled</div>
+                    <span class="severity-badge severity-critical">Critical</span>
+                </div>
+            </summary>
+            <div class="finding-body">
+                <div class="finding-meta">
+                    <span><strong>Category:</strong> User Account</span>
+                    <span><strong>Affected Object:</strong> <span class="meta-code">synthetic-object-6.fabrikam.local</span></span>
+                    <span><strong>Detected:</strong> 2026-09-21 20:17</span>
+                    <span><strong>MITRE:</strong> <span class="tag-mitre">T1558</span></span><span><strong>ANSSI:</strong> <span class="tag-anssi">vuln1_unconstrained_delegation</span></span>
+                </div>
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder finding for &#39;Unconstrained Delegation Enabled&#39;, generated to exercise report rendering - not a real detection result against &#39;fabrikam.local&#39; or any other domain.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Impact</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder impact text for &#39;Unconstrained Delegation Enabled&#39;. See src/Scoring.ps1 and the corresponding src/*.ps1 check for this Issue&#39;s real Impact wording.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>[SYNTHETIC TEST DATA] Placeholder remediation text for &#39;Unconstrained Delegation Enabled&#39;.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Estimated Effort</h4>
+                    <p>Medium - removing unconstrained delegation without configuring an equivalent constrained/RBCD replacement first can break the legitimate double-hop authentication scenario it was supporting, so this needs discovery of what the account/computer actually delegates to.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Known Risks</h4>
+                    <p>Unconstrained delegation is one of the most consequential AD misconfigurations (a compromised host with this flag can capture and reuse TGTs of any user who authenticates to it), but removing it without a replacement delegation model will break whatever legitimate multi-hop authentication currently depends on it.</p>
+                </div>
+                <div class="finding-section">
+                    <h4>Backup / Rollback</h4>
+                    <p>Easy - revert the TRUSTED_FOR_DELEGATION flag; effective at next Kerberos ticket request, no data loss.</p>
+                </div>
+
+            </div>
+        </details>    </div>        <div class="footer">
+            <p><strong>Generated by ADSecurityAudit Module v</strong></p>
+            <p>This report should be treated as confidential and shared only with authorized personnel.</p>
+            <p>Review findings, prioritize remediation by severity, and implement security best practices.</p>
+        </div>
+    </div>
+    <script>
+        // Expand All / Collapse All toggles a section's <details> elements.
+        // Each finding is a native <details>, collapsed by default; this
+        // just flips the open attribute on every one inside the section.
+        function setSectionFindings(sectionId, isOpen) {
+            var container = document.getElementById(sectionId + '-body');
+            if (!container) { return; }
+            var items = container.querySelectorAll('details.finding');
+            for (var i = 0; i < items.length; i++) {
+                items[i].open = isOpen;
+            }
+        }
+    </script>
+</body>
+</html>

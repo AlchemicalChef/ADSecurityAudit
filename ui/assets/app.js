@@ -1,29 +1,34 @@
+// Report contract (v1.20.0): the JSON this dashboard expects mirrors the
+// PowerShell module's ADSecurityFinding + Get-ADRiskScore output as closely
+// as ConvertTo-Json serializes them. Keep this in sync with Common.ps1 /
+// Scoring.ps1 - this comment exists specifically so the two don't drift
+// apart again (see CHANGELOG v1.20.0 for the history of why).
+//
+//   {
+//     "Summary": { Generated, PrivilegedAccounts, DomainControllers,
+//                  DomainAdmins, EnterpriseAdmins, SchemaAdmins },
+//     "RiskScore": {                       // optional; from Get-ADRiskScore
+//       TotalScore, MaturityLevel, MaturityLabel, FindingCount,
+//       WeightedPoints, SeverityCounts: { Critical, High, Medium, Low, Info },
+//       CategoryScores: [ { Category, Score, Findings, RawPoints } ],
+//       MitreSummary:   [ { Technique, Name, Count } ]
+//     },
+//     "Findings": [ {
+//       Issue, Category, Severity, SeverityLevel, AnssiControl,
+//       MitreTechnique, Weight, Description, Impact, Remediation,
+//       RemediationReference, AffectedObject, DetectedDate, Details
+//       // Details.HopChain/Source/Target/HopCount for Category=='Attack Paths'
+//     } ]
+//   }
+//
+// AD-only scope: no Entra/cloud fields belong here (see CHANGELOG v1.20.0 -
+// a stale AzureAdSsoExpiredKeys field was removed from the sample data).
+
 const SEVERITY_WEIGHTS = { Critical: 4, High: 3, Medium: 2, Low: 1 };
-const CATEGORY_ICONS = {
-  'Computer Account Delegation': '🖥️',
-  'Fine-Grained Password Policies': '🔑',
-  'DNS Security Configuration': '🌐',
-  'Authentication Policies': '🔒',
-  'Audit Configuration': '📑',
-  'LAPS Coverage': '🛡️',
-  'User Account': '👤',
-  'Privileged Groups': '👥',
-  'AdminSDHolder': '🔐',
-  'Group Policy': '📋',
-  'Replication Security': '🔄',
-  'Domain Security': '🏛️',
-  'Dangerous Permissions': '⚠️',
-  'Certificate Services': '📜',
-  'Kerberos Security': '🎫',
-  'Domain Trusts': '🤝',
-  'LAPS Deployment': '🔑',
-  'Audit Policy': '📊',
-  'Kerberos Delegation': '🎭',
-  'Admin Equivalence': '👑',
-  'Domain Admin Equivalence': '👑',
-  'Legacy Attack Vector': '⚡',
-  default: '📂',
-};
+// v1.20.1: category emoji icons removed - they rendered inconsistently
+// across platforms/print and read too casually for a report shown next to
+// leadership. Category cards/finding titles now use text only, consistent
+// with the static report's plain-text section headings.
 
 const state = {
   findings: [],
@@ -109,9 +114,7 @@ function groupByCategory(findings) {
   }, {});
 }
 
-function getCategoryIcon(name) {
-  return CATEGORY_ICONS[name] || CATEGORY_ICONS.default;
-}
+
 
 function renderSummary(findings) {
   const summary = computeSummary(findings);
@@ -137,7 +140,7 @@ function renderSummary(findings) {
   if (lastUpdatedEl) {
     lastUpdatedEl.textContent = latest
       ? `Updated ${formatDate(latest)}`
-      : 'Waiting for data…';
+      : 'Waiting for data...';
   }
 }
 
@@ -148,7 +151,7 @@ function renderAdminCounts(metadata) {
     { id: 'schema-admins-count', value: metadata.schemaAdmins },
   ];
   entries.forEach((entry) => {
-    const display = entry.value ?? '—';
+    const display = entry.value ?? '-';
     setText(entry.id, display);
   });
 }
@@ -195,7 +198,7 @@ function renderCategoryGrid(findings) {
     header.className = 'category-header';
     const title = document.createElement('div');
     title.className = 'category-title';
-    title.innerHTML = `<span class="icon">${getCategoryIcon(group.category)}</span><span>${escapeHtml(group.category)}</span>`;
+    title.innerHTML = `<span>${escapeHtml(group.category)}</span>`;
     const chip = document.createElement('span');
     chip.className = `status-chip ${severityClass}`;
     chip.textContent = `${severity} risk`;
@@ -239,6 +242,35 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// Change-management enrichment (v1.24.0) - EstimatedEffort/KnownRisks/
+// BackupRollback/OperationalNotes, per Finding-Enrichment-Prompt.md.
+// OperationalNotes is genuinely optional and omitted entirely when blank,
+// mirroring how Reporting.ps1's Get-FindingHTML handles the same fields.
+function buildEnrichmentHtml(finding) {
+  const effort = finding.EstimatedEffort || '';
+  const risks = finding.KnownRisks || '';
+  const rollback = finding.BackupRollback || '';
+  const notes = finding.OperationalNotes || '';
+
+  if (!effort && !risks && !rollback) return '';
+
+  let html = '<div class="enrichment-block">';
+  if (effort) {
+    html += `<p class="enrichment-item"><strong>Estimated Effort:</strong> ${escapeHtml(effort)}</p>`;
+  }
+  if (risks) {
+    html += `<p class="enrichment-item"><strong>Known Risks:</strong> ${escapeHtml(risks)}</p>`;
+  }
+  if (rollback) {
+    html += `<p class="enrichment-item"><strong>Backup / Rollback:</strong> ${escapeHtml(rollback)}</p>`;
+  }
+  if (notes) {
+    html += `<p class="enrichment-item"><strong>Operational Notes:</strong> ${escapeHtml(notes)}</p>`;
+  }
+  html += '</div>';
+  return html;
+}
+
 function renderFindings(findings) {
   const container = document.getElementById('findings-list');
   if (!container) return;
@@ -263,7 +295,7 @@ function renderFindings(findings) {
 
     const title = document.createElement('div');
     title.className = 'finding-title';
-    title.innerHTML = `${getCategoryIcon(finding.Category)} <span>${escapeHtml(finding.Issue || 'Unknown Issue')}</span>`;
+    title.innerHTML = `<span>${escapeHtml(finding.Issue || 'Unknown Issue')}</span>`;
 
     const severityValue = normalizeSeverity(finding.Severity);
     const severity = document.createElement('span');
@@ -276,7 +308,7 @@ function renderFindings(findings) {
     meta.className = 'meta-row';
     meta.innerHTML = `
       <span class="meta-chip">Category: ${escapeHtml(finding.Category || 'Unknown')}</span>
-      <span class="meta-chip">Affected: ${escapeHtml(finding.AffectedObject || 'Unknown')}</span>
+      <span class="meta-chip">Affected: <span class="meta-code">${escapeHtml(finding.AffectedObject || 'Unknown')}</span></span>
       <span class="meta-chip">Detected: ${formatDate(finding.DetectedDate)}</span>
     `;
 
@@ -292,6 +324,9 @@ function renderFindings(findings) {
     remediation.className = 'remediation';
     remediation.innerHTML = `<strong>Remediation:</strong> ${escapeHtml(finding.Remediation || 'No remediation provided.')}`;
 
+    const enrichment = document.createElement('div');
+    enrichment.innerHTML = buildEnrichmentHtml(finding);
+
     const references = buildReferences(finding.RemediationReference || finding.References);
 
     const button = document.createElement('button');
@@ -299,7 +334,7 @@ function renderFindings(findings) {
     button.textContent = 'View details & evidence';
     button.addEventListener('click', () => openModal(finding));
 
-    card.append(header, meta, description, impact, remediation, references, button);
+    card.append(header, meta, description, impact, remediation, enrichment, references, button);
     container.appendChild(card);
   });
 }
@@ -333,7 +368,7 @@ function renderRiskCallouts(findings) {
         <strong>${escapeHtml(finding.Issue || 'Unknown Issue')}</strong>
         <div class="meta-row">
           <span>${escapeHtml(finding.Category || 'Uncategorized')}</span>
-          <span>• Affected: ${escapeHtml(finding.AffectedObject || 'Unknown')}</span>
+          <span>- Affected: <span class="meta-code">${escapeHtml(finding.AffectedObject || 'Unknown')}</span></span>
         </div>
       `;
 
@@ -350,15 +385,318 @@ function renderRiskCallouts(findings) {
   });
 }
 
-function render(findings, metadata = {}) {
+function truncateLabel(text, maxChars) {
+  if (!text) return text;
+  if (text.length <= maxChars) return text;
+  if (maxChars <= 1) return text.slice(0, Math.max(maxChars, 0));
+  return `${text.slice(0, maxChars - 1).trimEnd()}\u2026`;
+}
+
+function bandColorForScore(score) {
+  if (score >= 75) return '#b3261e';
+  if (score >= 50) return '#c8590b';
+  if (score >= 25) return '#8a6200';
+  return '#1a7f4e';
+}
+
+function buildGaugeSvg(score, color) {
+  const clamped = Math.max(0, Math.min(100, score));
+  const radius = 70;
+  const circumference = 2 * Math.PI * radius;
+  const dash = circumference * (clamped / 100);
+  const gap = circumference - dash;
+  return `
+    <div class="gauge-svg-wrap">
+      <svg viewBox="0 0 160 160" role="img" aria-label="Risk score ${clamped} out of 100">
+        <circle cx="80" cy="80" r="${radius}" fill="none" stroke="#e2e6ea" stroke-width="14" />
+        <circle cx="80" cy="80" r="${radius}" fill="none" stroke="${color}" stroke-width="14"
+                stroke-linecap="round" stroke-dasharray="${dash} ${gap}"
+                transform="rotate(-90 80 80)" />
+      </svg>
+      <div class="gauge-center">
+        <div class="num">${clamped}</div>
+        <div class="of">/ 100</div>
+      </div>
+    </div>
+  `;
+}
+
+function buildCategoryBarsSvg(categoryScores) {
+  const rowHeight = 34;
+  const chartWidth = 700;
+  const labelWidth = 230;
+  const barAreaW = chartWidth - labelWidth - 60;
+  const height = rowHeight * categoryScores.length + 10;
+
+  let rowsSvg = '';
+  let y = 4;
+  categoryScores.forEach((cat) => {
+    const score = Math.round(cat.Score ?? 0);
+    let barW = (score / 100) * barAreaW;
+    if (barW < 2 && score > 0) barW = 2;
+    const color = bandColorForScore(score);
+    // ~7.2px/char at this font-size; reserve room for the " (NN)" suffix.
+    const maxCategoryChars = Math.max(8, Math.floor(labelWidth / 7.2) - 6);
+    const categoryLabel = truncateLabel(String(cat.Category ?? ''), maxCategoryChars);
+    const findingsCount = cat.Findings ?? 0;
+    const fullTitle = escapeHtml(`${cat.Category} (${findingsCount} finding${findingsCount === 1 ? '' : 's'})`);
+    const label = escapeHtml(`${categoryLabel} (${findingsCount})`);
+    const textY = y + 20;
+    const numX = labelWidth + barAreaW + 10;
+    rowsSvg += `
+      <g><title>${fullTitle}</title>
+      <text x="0" y="${textY}" font-size="12.5" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">${label}</text>
+      <rect x="${labelWidth}" y="${y}" width="${barAreaW}" height="22" rx="4" fill="#e2e6ea" />
+      <rect x="${labelWidth}" y="${y}" width="${barW}" height="22" rx="4" fill="${color}" />
+      <text x="${numX}" y="${textY}" font-size="13" font-weight="700" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">${score}</text>
+      </g>
+    `;
+    y += rowHeight;
+  });
+
+  return `<svg viewBox="0 0 ${chartWidth} ${height}" role="img" aria-label="Risk score by category">${rowsSvg}</svg>`;
+}
+
+function buildControlPathSvg(source, target, hopCount, color) {
+  const maxNodeChars = 26;
+  const srcFull = escapeHtml(source);
+  const tgtFull = escapeHtml(target);
+  const srcLabel = escapeHtml(truncateLabel(source, maxNodeChars));
+  const tgtLabel = escapeHtml(truncateLabel(target, maxNodeChars));
+  const hopLabel = hopCount === 1 ? '1 hop' : `${hopCount} hops`;
+  return `
+    <div class="control-path-svg">
+      <svg viewBox="0 0 640 90" role="img" aria-label="${srcFull} to ${tgtFull} via ${hopLabel}">
+        <g><title>${srcFull}</title>
+        <rect x="4" y="24" width="220" height="42" rx="6" fill="#f4f6f8" stroke="#e2e6ea" />
+        <text x="114" y="50" font-size="13" text-anchor="middle" fill="#1f2937" font-family="-apple-system,Segoe UI,sans-serif">${srcLabel}</text>
+        </g>
+        <line x1="228" y1="45" x2="404" y2="45" stroke="${color}" stroke-width="3" />
+        <polygon points="404,38 418,45 404,52" fill="${color}" />
+        <text x="316" y="34" font-size="12" text-anchor="middle" fill="${color}" font-weight="700" font-family="-apple-system,Segoe UI,sans-serif">${hopLabel}</text>
+        <g><title>${tgtFull}</title>
+        <rect x="418" y="24" width="218" height="42" rx="6" fill="#fdf1f0" stroke="${color}" />
+        <text x="527" y="50" font-size="13" text-anchor="middle" fill="#1f2937" font-weight="700" font-family="-apple-system,Segoe UI,sans-serif">${tgtLabel}</text>
+        </g>
+      </svg>
+    </div>
+  `;
+}
+
+function renderRiskScore(riskScore) {
+  const panel = document.getElementById('risk-score-panel');
+  if (!panel) return;
+
+  if (!riskScore || !riskScore.CategoryScores || !riskScore.CategoryScores.length) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+
+  const score = Math.round(riskScore.TotalScore ?? 0);
+  const color = bandColorForScore(score);
+  const gaugeContainer = document.getElementById('risk-gauge');
+  if (gaugeContainer) gaugeContainer.innerHTML = buildGaugeSvg(score, color);
+
+  const metaEl = document.getElementById('risk-score-meta');
+  if (metaEl) {
+    metaEl.innerHTML = `<strong>${riskScore.FindingCount ?? 0}</strong> findings scored. Higher is worse - the global score equals the worst category's score, similar in spirit to PingCastle's approach.`;
+  }
+
+  const maturityLevel = Number(riskScore.MaturityLevel ?? 5);
+  const headEl = document.getElementById('maturity-head');
+  if (headEl) headEl.innerHTML = `${maturityLevel} <small>/ 5</small>`;
+  setText('maturity-label', riskScore.MaturityLabel || '');
+
+  const labelMap = {
+    1: 'Critical gaps',
+    2: 'Partial hygiene',
+    3: 'Standard hardening',
+    4: 'Advanced hardening',
+    5: 'Optimal',
+  };
+  const stepper = document.getElementById('maturity-stepper');
+  if (stepper) {
+    stepper.innerHTML = '';
+    for (let lvl = 1; lvl <= 5; lvl += 1) {
+      const chip = document.createElement('div');
+      let cls = 'maturity-chip';
+      if (lvl === maturityLevel) cls = 'maturity-chip current';
+      else if (lvl < maturityLevel) cls = 'maturity-chip reached';
+      chip.className = cls;
+      chip.innerHTML = `<span class="lvl">${lvl}</span><span>${labelMap[lvl]}</span>`;
+      stepper.appendChild(chip);
+    }
+  }
+
+  const barsContainer = document.getElementById('category-bars-svg');
+  if (barsContainer) barsContainer.innerHTML = buildCategoryBarsSvg(riskScore.CategoryScores);
+
+  const mitreSection = document.getElementById('mitre-section');
+  const mitreBody = document.getElementById('mitre-table-body');
+  if (mitreSection && mitreBody) {
+    const mitreSummary = riskScore.MitreSummary || [];
+    if (mitreSummary.length) {
+      mitreSection.hidden = false;
+      const maxCount = Math.max(...mitreSummary.map((t) => t.Count || 0), 1);
+      mitreBody.innerHTML = mitreSummary
+        .map((t) => {
+          const barPct = Math.round(((t.Count || 0) / maxCount) * 100);
+          return `
+            <tr>
+              <td class="mitre-id">${escapeHtml(t.Technique)}</td>
+              <td>${escapeHtml(t.Name)}</td>
+              <td><div class="mitre-bar-cell"><span class="mitre-bar-track"><span class="mitre-bar-fill" style="width:${barPct}%;"></span></span><span>${t.Count}</span></div></td>
+            </tr>
+          `;
+        })
+        .join('');
+    } else {
+      mitreSection.hidden = true;
+    }
+  }
+}
+
+function renderControlPaths(findings) {
+  const panel = document.getElementById('control-paths-panel');
+  const container = document.getElementById('control-paths-list');
+  if (!panel || !container) return;
+
+  const controlPaths = findings.filter((f) => f.Category === 'Attack Paths');
+  if (!controlPaths.length) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  container.innerHTML = '';
+
+  controlPaths
+    .slice()
+    .sort((a, b) => SEVERITY_WEIGHTS[normalizeSeverity(b.Severity)] - SEVERITY_WEIGHTS[normalizeSeverity(a.Severity)])
+    .forEach((cp) => {
+      const severityValue = normalizeSeverity(cp.Severity);
+      const sevClass = severityValue.toLowerCase();
+      const details = cp.Details || {};
+      const hopChain = details.HopChain || cp.AffectedObject || '';
+
+      const card = document.createElement('div');
+      card.className = `finding-card severity-${sevClass}-card`;
+
+      const header = document.createElement('div');
+      header.className = 'finding-header';
+      header.innerHTML = `<div class="finding-title">${escapeHtml(cp.Issue || 'Control path')}</div>`;
+      const severity = document.createElement('span');
+      severity.className = `severity-pill severity-${sevClass}`;
+      severity.textContent = severityValue;
+      header.appendChild(severity);
+      card.appendChild(header);
+
+      if (details.Source && details.Target) {
+        const diagramColor = sevClass === 'critical' ? '#b3261e' : '#c8590b';
+        const diagramHtml = buildControlPathSvg(details.Source, details.Target, Number(details.HopCount || 1), diagramColor);
+        const diagramWrap = document.createElement('div');
+        diagramWrap.innerHTML = diagramHtml;
+        card.appendChild(diagramWrap);
+      }
+
+      const hopChainEl = document.createElement('p');
+      hopChainEl.className = 'code-block';
+      hopChainEl.textContent = hopChain;
+      card.appendChild(hopChainEl);
+
+      container.appendChild(card);
+    });
+}
+
+function renderPriorityList(findings, riskScore) {
+  const container = document.getElementById('priority-list');
+  const panel = document.getElementById('priority-panel');
+  if (!container || !panel) return;
+
+  if (!findings.length) {
+    panel.hidden = true;
+    return;
+  }
+
+  const catScoreMap = {};
+  (riskScore && riskScore.CategoryScores ? riskScore.CategoryScores : []).forEach((c) => {
+    catScoreMap[c.Category] = c.Score || 0;
+  });
+
+  const groups = new Map();
+  findings.forEach((f) => {
+    const key = `${f.Category || 'Uncategorized'}|||${f.Issue || 'Unknown'}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(f);
+  });
+
+  const ranked = Array.from(groups.values())
+    .map((group) => {
+      const first = group[0];
+      const severity = normalizeSeverity(first.Severity);
+      return {
+        group,
+        category: first.Category || 'Uncategorized',
+        issue: first.Issue || 'Unknown issue',
+        severity,
+        severityWeight: SEVERITY_WEIGHTS[severity] || 0,
+        categoryScore: catScoreMap[first.Category] || 0,
+        count: group.length,
+      };
+    })
+    .sort((a, b) => b.severityWeight - a.severityWeight || b.categoryScore - a.categoryScore || b.count - a.count)
+    .slice(0, 10);
+
+  if (!ranked.length) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  container.innerHTML = '';
+
+  ranked.forEach((r, index) => {
+    const li = document.createElement('li');
+    li.className = 'priority-item';
+
+    const rank = document.createElement('span');
+    rank.className = 'priority-rank';
+    rank.textContent = String(index + 1);
+
+    const link = document.createElement('button');
+    link.type = 'button';
+    link.className = 'priority-link';
+    link.innerHTML = `${escapeHtml(r.issue)}<span class="priority-cat">${escapeHtml(r.category)} &middot; ${r.count} affected object${r.count === 1 ? '' : 's'}</span>`;
+    link.addEventListener('click', () => {
+      if (r.group.length === 1) {
+        openModal(r.group[0]);
+      } else {
+        openModal({ title: r.issue, findings: r.group });
+      }
+    });
+
+    const severityPill = document.createElement('span');
+    severityPill.className = `severity-pill severity-${r.severity.toLowerCase()}`;
+    severityPill.textContent = r.severity;
+
+    li.append(rank, link, severityPill);
+    container.appendChild(li);
+  });
+}
+
+
+function render(findings, metadata = {}, riskScore = null) {
   state.findings = findings;
   state.metadata = metadata;
+  state.riskScore = riskScore;
   renderSummary(findings);
   renderCategoryGrid(findings);
   renderFindings(findings);
   renderMeta(metadata);
   renderAdminCounts(metadata);
   renderRiskCallouts(findings);
+  renderPriorityList(findings, riskScore);
+  renderRiskScore(riskScore);
+  renderControlPaths(findings);
   setStatus('Audit data loaded and visualized.');
 }
 
@@ -393,11 +731,17 @@ function extractMetadata(data) {
     privilegedAccounts: meta.PrivilegedAccounts || summary.PrivilegedAccounts || stats.PrivilegedAccounts || data.PrivilegedAccountsCount,
     domainControllers: summary.DomainControllers || stats.DomainControllers || meta.DomainControllers,
     auditGenerated: summary.Generated || data.Generated || meta.GeneratedOn,
-    staleSeamlessSso: summary.AzureAdSsoExpiredKeys || stats.AzureAdSsoExpiredKeys,
     domainAdmins: summary.DomainAdmins || meta.DomainAdmins || stats.DomainAdmins,
     enterpriseAdmins: summary.EnterpriseAdmins || meta.EnterpriseAdmins || stats.EnterpriseAdmins,
     schemaAdmins: summary.SchemaAdmins || meta.SchemaAdmins || stats.SchemaAdmins,
   };
+}
+
+function extractRiskScore(data) {
+  if (!data || typeof data !== 'object') return null;
+  const riskScore = data.RiskScore || data.riskScore;
+  if (!riskScore || typeof riskScore !== 'object') return null;
+  return riskScore;
 }
 
 function renderMeta(metadata) {
@@ -406,10 +750,9 @@ function renderMeta(metadata) {
   
   container.innerHTML = '';
   const entries = [
-    { label: 'Privileged Accounts', value: metadata.privilegedAccounts ?? '—', hint: 'High-risk identities to lock down' },
-    { label: 'Domain Controllers', value: metadata.domainControllers ?? '—', hint: 'Visibility across replication scope' },
-    { label: 'Seamless SSO keys expired', value: metadata.staleSeamlessSso ?? '—', hint: 'Rotate AzureADSSOACC keys per guidance' },
-    { label: 'Audit generated', value: metadata.auditGenerated ? formatDate(metadata.auditGenerated) : '—', hint: 'Report timestamp' },
+    { label: 'Privileged Accounts', value: metadata.privilegedAccounts ?? '-', hint: 'High-risk identities to lock down' },
+    { label: 'Domain Controllers', value: metadata.domainControllers ?? '-', hint: 'Visibility across replication scope' },
+    { label: 'Audit generated', value: metadata.auditGenerated ? formatDate(metadata.auditGenerated) : '-', hint: 'Report timestamp' },
   ];
 
   entries.forEach((entry) => {
@@ -520,7 +863,7 @@ function buildModalFinding(finding) {
 
   const header = document.createElement('div');
   header.className = 'finding-header';
-  header.innerHTML = `${getCategoryIcon(finding.Category)} <strong>${escapeHtml(finding.Issue || 'Unknown Issue')}</strong>`;
+  header.innerHTML = `<strong>${escapeHtml(finding.Issue || 'Unknown Issue')}</strong>`;
 
   const severityValue = normalizeSeverity(finding.Severity);
   const severity = document.createElement('span');
@@ -533,7 +876,7 @@ function buildModalFinding(finding) {
   meta.className = 'meta-row';
   meta.innerHTML = `
     <span class="meta-chip">Category: ${escapeHtml(finding.Category || 'Unknown')}</span>
-    <span class="meta-chip">Affected: ${escapeHtml(finding.AffectedObject || 'Unknown')}</span>
+    <span class="meta-chip">Affected: <span class="meta-code">${escapeHtml(finding.AffectedObject || 'Unknown')}</span></span>
     <span class="meta-chip">Detected: ${formatDate(finding.DetectedDate)}</span>
   `;
 
@@ -549,10 +892,13 @@ function buildModalFinding(finding) {
   remediation.className = 'remediation';
   remediation.innerHTML = `<strong>Remediation:</strong> ${escapeHtml(finding.Remediation || 'No remediation provided.')}`;
 
+  const enrichment = document.createElement('div');
+  enrichment.innerHTML = buildEnrichmentHtml(finding);
+
   const references = buildReferences(finding.RemediationReference || finding.References);
   const details = buildDetailsGrid(finding.Details);
 
-  wrapper.append(header, meta, description, impact, remediation, references, details);
+  wrapper.append(header, meta, description, impact, remediation, enrichment, references, details);
   return wrapper;
 }
 
@@ -610,7 +956,8 @@ function handleFileUpload(event) {
 function ingestData(parsed, sourceLabel) {
   const findings = normalizeFindings(parsed);
   const metadata = extractMetadata(parsed);
-  render(findings, metadata);
+  const riskScore = extractRiskScore(parsed);
+  render(findings, metadata, riskScore);
   reportIngestionResult(findings, sourceLabel);
 }
 
@@ -684,6 +1031,9 @@ function boot() {
   const loadPasted = document.getElementById('load-pasted');
   const closeModalBtn = document.getElementById('close-modal');
   const modal = document.getElementById('modal');
+  const printBtn = document.getElementById('print-view');
+
+  if (printBtn) printBtn.addEventListener('click', () => window.print());
   
   if (fileInput) fileInput.addEventListener('change', handleFileUpload);
   if (loadSample) loadSample.addEventListener('click', () => loadRemoteJson('./sample-data/audit-report.json'));
